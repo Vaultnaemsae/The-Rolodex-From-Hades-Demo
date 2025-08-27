@@ -76,7 +76,7 @@
   }
 
   /* Fretboard diagram panel (shares .panel) */
-  .diagram { }
+  .diagram {}
   .diagram.hidden { display:none; }
   .diagram .wrap { width:100%; }
   .diagram svg { width: 100%; height: auto; display:block; }
@@ -364,7 +364,7 @@ function fitLines(){
 }
 
 /* ===================== Self-healing persistence ===================== */
-const STORAGE_KEY = 'rolodex_state_v4'; // new version to avoid old bad blobs
+const STORAGE_KEY = 'rolodex_state_v4';
 const SRS_KEY = 'rolodex_srs_v2';
 
 function stateToJSON(s){
@@ -534,7 +534,32 @@ $("resetBtn").addEventListener("click", ()=>{
   saveStateThrottled();
   renderFilters();
 });
-$("filtersBtn").addEventListener("click", ()=> $("filters").classList.toggle("hidden"));
+
+/* Robust Filters toggle */
+const filtersBtnEl = $("filtersBtn");
+if (filtersBtnEl) {
+  filtersBtnEl.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const panel = $("filters");
+    if (panel) panel.classList.toggle("hidden");
+  });
+}
+/* Delegated fallback (self-healing) */
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest && e.target.closest("#filtersBtn");
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const panel = $("filters");
+  if (panel) panel.classList.toggle("hidden");
+}, { capture: true });
+
+/* Options toggle */
+$("optionsBtn").addEventListener("click", (e)=> {
+  e.preventDefault(); e.stopPropagation();
+  $("options").classList.toggle("hidden");
+});
 
 /* ===================== Options & instrument ===================== */
 document.querySelectorAll('input[name="mode"]').forEach(r=>{
@@ -836,22 +861,21 @@ function pick(){
   const ivlStr  = toMusical(scaleChoice.intervals);
   const metaStr = `(ID: ${scaleChoice.id}, Size: ${scaleChoice.size})`;
 
-  // Compute fret (if applicable), but show it on the TOP line with String
+  // Compute fret (moved to TOP line)
   const fret = (state.mode==='guitar' && state.showFret && stringVal)
       ? pickFretFor(noteVal, parseInt(stringVal,10))
       : null;
 
-  // Top line: "String: X · Fret: Y" (only in Guitar/Bass mode; omit if empty)
+  // TOP: "String: X · Fret: Y" (Guitar/Bass only)
   const topParts = [];
   if (state.mode === 'guitar' && stringVal) topParts.push(`<span class="label">String:</span> ${stringVal}`);
   if (state.mode === 'guitar' && fret != null) topParts.push(`<span class="label">Fret:</span> ${fret}`);
   const topLine = topParts.length ? `<div class="line fit">${topParts.join(' · ')}</div>` : '';
 
-  // Line 2: NO labels — just "Note · ScaleName (meta)"
+  // LINE 2: NO labels — "Note · ScaleName (meta)"
   const secondParts = [ toMusical(noteVal), nameStr ];
   const secondLine = `<div class="line">${secondParts.filter(Boolean).join(' · ')} <span class="meta">${metaStr}</span></div>`;
 
-  // Build output (line 3 stays labeled: Intervals)
   $("out").innerHTML = `
     ${topLine}
     ${secondLine}
@@ -860,16 +884,16 @@ function pick(){
   `;
   fitLines();
 
-  // Drone
+  /* Drone */
   if(state.drone.enabled){
     const pc = parseNotePc(noteVal);
     if (pc!=null){ const freq = notePcToFreq(pc, state.drone.octave); startDrone(freq); }
   } else { stopDrone(); }
 
-  // TIMER: restart on every Generate (your request)
+  /* Timer: restart every Generate (change to if(state.timer.auto) ... if you prefer) */
   startTimer(state.timer.dur);
 
-  // Diagram
+  /* Diagram */
   updateDiagramVisibility();
   if (state.diagEnable && state.mode==='guitar'){
     drawFretboardDiagram(
@@ -880,14 +904,11 @@ function pick(){
     );
   }
 
-  // Show SRS grading buttons if on
   $("srsControls").style.display = state.srs.enabled ? '' : 'none';
 }
 
 /* Buttons & quick actions */
 $("pickBtn").addEventListener("click", pick);
-$("optionsBtn").addEventListener("click", ()=> $("options").classList.toggle("hidden"));
-$("filtersBtn").addEventListener("click", ()=> $("filters").classList.toggle("hidden"));
 
 /* Spacebar to Generate unless typing */
 document.addEventListener("keydown", (e)=>{
@@ -911,10 +932,10 @@ window.addEventListener("orientationchange", () => setTimeout(fitLines, 60));
 function loadSRS(){ try{ const x=localStorage.getItem('rolodex_srs_v2'); return x? JSON.parse(x) : {}; }catch{return{};} }
 function saveSRS(){ try{ localStorage.setItem('rolodex_srs_v2', JSON.stringify(state.srs.map)); }catch{} }
 state.srs.map = loadSRS();
-
-/* ===== Render filters and finalize ===== */
 function srsDueCount(){ const now=Date.now(); let n=0; for(const id in state.srs.map){ if(state.srs.map[id].due<=now) n++; } $("dueCount").textContent=n; }
 srsDueCount();
+
+/* ===== Render filters and finalize ===== */
 renderFilters();
 updateDiagramVisibility();
 
@@ -925,4 +946,3 @@ function updateInlineTimer(sec){
   el.textContent = (sec==null) ? '' : fmt(sec);
 }
 </script>
-
