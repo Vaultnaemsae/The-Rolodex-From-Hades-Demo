@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Rolodex From Hades [Demo Version 1.0]</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>The Rolodex From Hades [Demo Version]</title>
 <style>
   :root {
     --bg: #2c0f1a;
@@ -12,6 +12,11 @@
     --text: #f5f5f5;
     --muted: #a78b9c;
     --radius: 14px;
+  }
+  html, body {
+    height: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   body {
     margin:0;
@@ -38,47 +43,59 @@
   button.primary { background:var(--accent); color:#000; font-weight:700; }
   button.primary:hover { background:var(--accent-hover); color:#111; }
 
-  /* Larger, clearer result area */
+  /* Result area (base size; lines will auto-fit individually) */
   .result {
     margin-top:20px;
     padding:32px;
-    font-size:1.6rem;
+    font-size:1.6rem;   /* base size; each .line starts here then shrinks if needed */
     font-weight:600;
     background:var(--card-bg);
     border:2px solid var(--accent);
     border-radius:var(--radius);
-    min-height:6em;
+    min-height:6.2em;
     display:flex;
     flex-direction:column;
     justify-content:center;
     align-items:center;
     text-align:center;
-    line-height:1.6;
+    line-height:1.4;
     box-shadow:0 0 12px rgba(255,255,255,.15);
   }
+
+  /* Each printed row: single visual line, no wrapping, no ellipses */
+  .result .line {
+    display:block;
+    width:100%;
+    white-space:nowrap;     /* keep to one line */
+    overflow:visible;       /* never clip */
+    text-overflow:clip;     /* never show … */
+    text-align:center;
+    /* let JS control font-size per line for fit */
+  }
+
   .result .meta {
-    color: #888;             /* mid-dark grey */
+    color: #888;
     font-weight: normal;
-    font-size: 0.9em;        /* slightly smaller */
+    font-size: 0.9em;
   }
   .result .label {
-    color: #bbb;             /* softer grey for labels */
+    color: #bbb;
     font-weight: normal;
   }
 
-  /* Extra boost on small screens */
+  /* Extra tuning for small screens */
   @media (max-width: 600px) {
     body { padding: 18px; }
     h1 { font-size: 1.5rem; }
     h2 { font-size: .95rem; }
     button { font-size: 1.3rem; padding:14px 24px; }
-    .result { font-size: 1.8rem; padding: 36px; min-height: 7em; }
-    .result .meta { font-size: 0.95em; } /* scale meta a bit with overall size */
+    .result { font-size: 1.7rem; padding: 28px; min-height: 6.6em; }
+    .result .meta { font-size: 0.95em; }
   }
 </style>
 
 <h1>The Rolodex From Hades [Demo Version]</h1>
-<h2>A systematized and gamified approach to learning to improvise with intervallic patterns inspired by Nicolas Slonimsky, Allan Holdsworth, Wayne Krantz and others.</h2>
+<h2>A systematized and gamified approach to learning to improvise with intervallic patterns inspired by musical visionaries, including Nicolas Slonimsky, Allan Holdsworth and Wayne Krantz.</h2>
 
 <div class="row">
   <button id="pickBtn" class="primary"><b>Pick</b> (Space)</button>
@@ -89,7 +106,7 @@
 <script>
 const $ = id => document.getElementById(id);
 
-/* --- Embedded Scales (your latest list) --- */
+/* --- Embedded Scales (latest list) --- */
 const EMBEDDED_SCALES = [
   {"id":"393","size":"5-note","name":"Pentatonic Major","intervals":"1-2-3-5-6"},
   {"id":"849","size":"6-note","name":"Messiaen Mode 1 (Whole Tone)","intervals":"1-2-3-#4-#5-b7"},
@@ -115,22 +132,14 @@ const EMBEDDED_SCALES = [
   {"id":"2048","size":"12-note","name":"Chromatic","intervals":"1-b2-2-b3-3-4-#4-5-#5-6-b7-7"}
 ];
 
-/* --- Accidental converter: ASCII -> musical glyphs (handles note names & interval numbers) --- */
+/* --- Accidental converter: ASCII -> musical glyphs --- */
 function toMusical(str) {
   if (!str) return str;
   return String(str)
-    // Note-letter double accidentals (C##, Dbb)
-    .replace(/([A-Ga-g])##/g, '$1𝄪')   // fallback: '♯♯' if 𝄪 not supported
-    .replace(/([A-Ga-g])bb/g, '$1𝄫')   // fallback: '♭♭' if 𝄫 not supported
-    // Note-letter single accidentals (A#, Bb)
-    .replace(/([A-Ga-g])#/g,  '$1♯')
-    .replace(/([A-Ga-g])b/g,  '$1♭')
-    // Accidentals before interval numbers (#4, b7, ##5, bb2)
-    .replace(/##(?=\d)/g, '𝄪')
-    .replace(/bb(?=\d)/g, '𝄫')
-    .replace(/#(?=\d)/g,  '♯')
-    .replace(/b(?=\d)/g,  '♭')
-    // Natural: match "nat7" or "nat 7" (case-insensitive) and remove the space
+    .replace(/([A-Ga-g])##/g, '$1𝄪').replace(/([A-Ga-g])bb/g, '$1𝄫')
+    .replace(/([A-Ga-g])#/g,  '$1♯').replace(/([A-Ga-g])b/g,  '$1♭')
+    .replace(/##(?=\d)/g, '𝄪').replace(/bb(?=\d)/g, '𝄫')
+    .replace(/#(?=\d)/g,  '♯').replace(/b(?=\d)/g,  '♭')
     .replace(/\bnat\s*(\d)/gi, '♮$1');
 }
 
@@ -144,6 +153,27 @@ const state = {
     newList("Note", ["A","A#/Bb","B","C","C#/Db","D","D#/Eb","E","F","F#/Gb","G","G#/Ab"], true)
   ]
 };
+
+/* --- Fit each printed line so it never wraps/clips (no ellipses) --- */
+function fitLines() {
+  const out = $("out");
+  const baseSize = parseFloat(getComputedStyle(out).fontSize) || 24; // px
+  const minSize = 12; // px floor for readability
+
+  // For each line, shrink its font-size proportionally if it's wider than the box
+  out.querySelectorAll('.line').forEach(line => {
+    line.style.fontSize = ""; // reset any previous sizing
+    // quick measure at base size
+    const currentSize = parseFloat(getComputedStyle(line).fontSize) || baseSize;
+    // If it overflows, scale down
+    const maxWidth = out.clientWidth - 6; // small safety padding
+    if (line.scrollWidth > maxWidth) {
+      const ratio = maxWidth / line.scrollWidth;
+      const newSize = Math.max(minSize, currentSize * ratio);
+      line.style.fontSize = newSize + "px";
+    }
+  });
+}
 
 /* --- Picker --- */
 function pick(){
@@ -161,21 +191,23 @@ function pick(){
 
   const nameStr = toMusical(s.name);
   const ivlStr  = toMusical(s.intervals);
-  const noteStr = toMusical(noteVal);   // convert Note value too
+  const noteStr = toMusical(noteVal);
 
-  const lines = [];
-  if (stringVal || noteVal) {
-    lines.push(`<div>${
-      [
-        stringVal ? `<span class="label">String:</span> ${stringVal}` : null,
-        noteVal   ? `<span class="label">Note:</span> ${noteStr}`     : null
-      ].filter(Boolean).join(" · ")
-    }</div>`);
-  }
-  lines.push(`<div><span class="label">Scale:</span> ${nameStr} <span class="meta">(ID: ${s.id}, Size: ${s.size})</span></div>`);
-  lines.push(`<div><span class="label">Intervals:</span> ${ivlStr}</div>`);
+  const html = [
+    (stringVal || noteVal)
+      ? `<div class="line">${
+          [
+            stringVal ? `<span class="label">String:</span> ${stringVal}` : null,
+            noteVal   ? `<span class="label">Note:</span> ${noteStr}`     : null
+          ].filter(Boolean).join(" · ")
+        }</div>`
+      : "",
+    `<div class="line"><span class="label">Scale:</span> ${nameStr} <span class="meta">(ID: ${s.id}, Size: ${s.size})</span></div>`,
+    `<div class="line"><span class="label">Intervals:</span> ${ivlStr}</div>`
+  ].filter(Boolean).join("");
 
-  $("out").innerHTML = lines.join("");
+  $("out").innerHTML = html;
+  fitLines();
 }
 
 /* --- Wire up --- */
@@ -183,4 +215,8 @@ $("pickBtn").addEventListener("click", pick);
 document.addEventListener("keydown", e=>{
   if (e.code==="Space" && !/INPUT|TEXTAREA/.test(e.target.tagName)) { e.preventDefault(); pick(); }
 });
+
+/* Refit on resize / rotate (iOS Safari portrait/landscape) */
+window.addEventListener("resize", fitLines);
+window.addEventListener("orientationchange", () => setTimeout(fitLines, 50));
 </script>
