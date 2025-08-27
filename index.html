@@ -51,7 +51,8 @@
   .result .line { display:block; width:100%; text-align:center; line-height:1.35; }
   .result .meta  { color: #888; font-weight: normal; font-size: 0.9em; }
   .result .label { color: #bbb; font-weight: normal; }
-
+  .result { cursor: pointer; }
+  
   .filters {
     margin-top: 12px;
     background: var(--card-bg);
@@ -352,4 +353,23 @@ document.querySelectorAll(".group-toggle").forEach(btn => {
 
 /* Initial render */
 renderFilters();
+
+// Spacebar triggers Generate (unless you're typing in a field)
+document.addEventListener("keydown", (e) => {
+  const tag = (e.target && e.target.tagName) ? e.target.tagName : "";
+  if ((e.code === "Space" || e.key === " ") && !/INPUT|TEXTAREA|SELECT/.test(tag)) {
+    e.preventDefault();   // stop page scrolling
+    pick();
+  }
+});
+
+// Tap/click the result box to Generate
+    const outEl = document.getElementById("out");
+    outEl.addEventListener("click", pick);
+
+// iOS Safari: ensure tap works reliably
+    outEl.addEventListener("touchend", function(e){
+      e.preventDefault();  // stop duplicate click
+      pick();
+    }, { passive: false });
 </script>
