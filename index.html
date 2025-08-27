@@ -12,7 +12,14 @@
     --text: #f5f5f5;
     --muted: #a78b9c;
     --radius: 14px;
+
+    /* Desktop defaults */
+    --result-font: 1.6rem;
+    --result-pad: 32px;
+    --result-minh: 6.2em;
+    --result-maxw: 760px; /* keep nice width on large screens */
   }
+
   html, body {
     height: 100%;
     -webkit-text-size-adjust: 100%;
@@ -43,16 +50,20 @@
   button.primary { background:var(--accent); color:#000; font-weight:700; }
   button.primary:hover { background:var(--accent-hover); color:#111; }
 
-  /* Result area */
+  /* Result area (with max width & centered) */
   .result {
     margin-top:20px;
-    padding:32px;
-    font-size:1.6rem;   /* base size; .line.fit can shrink from here */
+    padding: var(--result-pad);
+    font-size: var(--result-font);
     font-weight:600;
     background:var(--card-bg);
     border:2px solid var(--accent);
     border-radius:var(--radius);
-    min-height:6.2em;
+    min-height: var(--result-minh);
+    width: min(100%, var(--result-maxw));
+    margin-inline: auto;
+    box-sizing: border-box;
+
     display:flex;
     flex-direction:column;
     justify-content:center;
@@ -77,7 +88,7 @@
     text-overflow: clip;
   }
 
-  /* Single-line with ellipsis (Scale / Intervals) */
+  /* Single-line with ellipsis (desktop/tablet) */
   .result .line.ellip {
     white-space: nowrap;
     overflow: hidden;
@@ -94,14 +105,52 @@
     font-weight: normal;
   }
 
-  /* Extra tuning for small screens */
-  @media (max-width: 600px) {
+  /* -----------------------------
+     PHONE — PORTRAIT
+     Make things a bit smaller and clamp long lines to 2 rows.
+     ----------------------------- */
+  @media (max-width: 600px) and (orientation: portrait) {
+    :root {
+      --result-font: clamp(1.2rem, 4.5vw, 1.5rem);
+      --result-pad: 22px;
+      --result-minh: 6.0em;
+    }
     body { padding: 18px; }
-    h1 { font-size: 1.5rem; }
+    h1 { font-size: 1.45rem; }
     h2 { font-size: .95rem; }
-    button { font-size: 1.3rem; padding:14px 24px; }
-    .result { font-size: 1.7rem; padding: 28px; min-height: 6.6em; }
-    .result .meta { font-size: 0.95em; }
+
+    /* Turn ellipsis into 2-line clamp for readability */
+    .result .line.ellip {
+      white-space: normal;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;   /* <-- two lines max */
+      line-clamp: 2;
+    }
+
+    /* Optional: on very tight screens, hide labels to gain space */
+    @media (max-width: 380px) {
+      .result .label { display:none; }
+    }
+  }
+
+  /* -----------------------------
+     PHONE — LANDSCAPE (short height)
+     Make card & type scale with viewport height so it never pushes the edges.
+     ----------------------------- */
+  @media (max-height: 420px) and (orientation: landscape) {
+    :root {
+      /* font scales with safe viewport height; keeps card inside */
+      --result-font: clamp(1rem, 4.2svh, 1.25rem);
+      --result-pad: clamp(12px, 3.5svh, 18px);
+      --result-minh: 5.6em;
+      --result-maxw: 92svw; /* avoid touching edges */
+    }
+    body { padding: min(16px, 3svh); }
+    h1 { font-size: clamp(1.1rem, 3.8svh, 1.3rem); }
+    h2 { font-size: clamp(.85rem, 3.2svh, .95rem); }
+    .result { box-shadow:0 0 8px rgba(255,255,255,.12); }
   }
 </style>
 
