@@ -43,11 +43,11 @@
   button.primary { background:var(--accent); color:#000; font-weight:700; }
   button.primary:hover { background:var(--accent-hover); color:#111; }
 
-  /* Result area (base size; lines will auto-fit individually) */
+  /* Result area */
   .result {
     margin-top:20px;
     padding:32px;
-    font-size:1.6rem;   /* base size; each .line starts here then shrinks if needed */
+    font-size:1.6rem;   /* base size; .line.fit can shrink from here */
     font-weight:600;
     background:var(--card-bg);
     border:2px solid var(--accent);
@@ -62,15 +62,26 @@
     box-shadow:0 0 12px rgba(255,255,255,.15);
   }
 
-  /* Each printed row: single visual line, no wrapping, no ellipses */
+  /* Generic printed row */
   .result .line {
     display:block;
     width:100%;
-    white-space:nowrap;     /* keep to one line */
-    overflow:visible;       /* never clip */
-    text-overflow:clip;     /* never show … */
     text-align:center;
-    /* let JS control font-size per line for fit */
+    line-height:1.35;
+  }
+
+  /* Single-line that auto-shrinks to fit (String · Note) */
+  .result .line.fit {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+  }
+
+  /* Single-line with ellipsis (Scale / Intervals) */
+  .result .line.ellip {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .result .meta {
@@ -154,18 +165,15 @@ const state = {
   ]
 };
 
-/* --- Fit each printed line so it never wraps/clips (no ellipses) --- */
+/* --- Fit only the .fit line (single-line auto-shrink) --- */
 function fitLines() {
   const out = $("out");
   const baseSize = parseFloat(getComputedStyle(out).fontSize) || 24; // px
   const minSize = 12; // px floor for readability
 
-  // For each line, shrink its font-size proportionally if it's wider than the box
-  out.querySelectorAll('.line').forEach(line => {
-    line.style.fontSize = ""; // reset any previous sizing
-    // quick measure at base size
+  out.querySelectorAll('.line.fit').forEach(line => {
+    line.style.fontSize = ""; // reset
     const currentSize = parseFloat(getComputedStyle(line).fontSize) || baseSize;
-    // If it overflows, scale down
     const maxWidth = out.clientWidth - 6; // small safety padding
     if (line.scrollWidth > maxWidth) {
       const ratio = maxWidth / line.scrollWidth;
@@ -195,15 +203,15 @@ function pick(){
 
   const html = [
     (stringVal || noteVal)
-      ? `<div class="line">${
+      ? `<div class="line fit">${
           [
             stringVal ? `<span class="label">String:</span> ${stringVal}` : null,
             noteVal   ? `<span class="label">Note:</span> ${noteStr}`     : null
           ].filter(Boolean).join(" · ")
         }</div>`
       : "",
-    `<div class="line"><span class="label">Scale:</span> ${nameStr} <span class="meta">(ID: ${s.id}, Size: ${s.size})</span></div>`,
-    `<div class="line"><span class="label">Intervals:</span> ${ivlStr}</div>`
+    `<div class="line ellip"><span class="label">Scale:</span> ${nameStr} <span class="meta">(ID: ${s.id}, Size: ${s.size})</span></div>`,
+    `<div class="line ellip"><span class="label">Intervals:</span> ${ivlStr}</div>`
   ].filter(Boolean).join("");
 
   $("out").innerHTML = html;
