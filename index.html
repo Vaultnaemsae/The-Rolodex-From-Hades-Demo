@@ -19,13 +19,14 @@
 
     --filters-maxw: 1200px;
 
-    /* Fretboard colors */
-    --fretboard-board: #1a1a1a;
-    --fretboard-grid:  #444;
-    --fretboard-inlay: #777;
-    --fretboard-nut:   #ddd;
-    --fretboard-dot:   #6b1f3b;  /* burgundy dots (non-tonic) */
-    --fretboard-tonic: #ff3a3a;  /* red tonic */
+    /* Fretboard colors (Pure Black scheme) */
+    --fretboard-board: #000000;    /* pure black background */
+    --fretboard-grid:  #cfcfcf;    /* light gray frets/strings */
+    --fretboard-inlay: #9a9a9a;    /* gray inlays */
+    --fretboard-nut:   #dddddd;    /* nut stays light */
+    --fretboard-dot:   #ffffff;    /* white dots */
+    --fretboard-tonic: #e4a7bf;    /* lighter burgundy/pink fill */
+    --fretboard-tonic-edge: #4a1628; /* darker plum border */
   }
 
   html, body { height: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -346,7 +347,6 @@ function parseNotePc(name){
   if (!/^[A-G](#|B)?$/.test(n)) n = n.charAt(0);
   return PC[n] ?? null;
 }
-function pcDiff(openPc, targetPc){ return (targetPc - openPc + 12) % 12; }
 
 /* Fit only the single-line row when needed */
 function fitLines(){
@@ -731,6 +731,7 @@ function intervalStringToSemis(ivlStr){
 function drawFretboardDiagram(noteVal, scale, tuning, opts){
   const wrap = $("fretSvgWrap");
   wrap.innerHTML = "";
+
   const strings = tuning.length;
   const frets = Math.max(12, Math.min(24, opts.maxFrets || 15));
   const tonicPc = parseNotePc(noteVal);
@@ -740,88 +741,142 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
 
   const W = 1000;
   const H = Math.max(180, 50 + strings*28); /* responsive height based on string count */
-  const nutW = 8;
-  const fretW = (W - nutW - 16) / frets;
-  const top = 24, left = 12;
 
   const svgns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgns, "svg");
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
 
-  // background
+  /* ---------- Board geometry (flush edges) ---------- */
+  const PAD_X = 16;
+  const PAD_Y = 16;
+
+  const boardLeft   = PAD_X;
+  const boardRight  = W - PAD_X;
+  const boardTop    = PAD_Y;
+  const boardBottom = H - PAD_Y;
+  const boardWidth  = boardRight - boardLeft;
+  const boardHeight = boardBottom - boardTop;
+
+  const nutW = 10;
+  const fretsCount = frets;
+  const fretW = (boardWidth - nutW) / fretsCount;
+
+  // background (full SVG)
   const bg = document.createElementNS(svgns, "rect");
   bg.setAttribute("x", 0); bg.setAttribute("y", 0);
   bg.setAttribute("width", W); bg.setAttribute("height", H);
-  bg.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--fretboard-board').trim() || '#1a1a1a');
+  bg.setAttribute("fill", getComputedStyle(document.documentElement)
+    .getPropertyValue('--fretboard-board').trim() || '#000');
   svg.appendChild(bg);
 
-  const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--fretboard-grid').trim() || '#444';
-  const inlay = getComputedStyle(document.documentElement).getPropertyValue('--fretboard-inlay').trim() || '#777';
-  const nut = getComputedStyle(document.documentElement).getPropertyValue('--fretboard-nut').trim() || '#ddd';
-  const dot = getComputedStyle(document.documentElement).getPropertyValue('--fretboard-dot').trim() || '#6b1f3b';
-  const tonic = getComputedStyle(document.documentElement).getPropertyValue('--fretboard-tonic').trim() || '#ff3a3a';
+  const style = getComputedStyle(document.documentElement);
+  const gridColor  = style.getPropertyValue('--fretboard-grid').trim()  || '#cfcfcf';
+  const inlay      = style.getPropertyValue('--fretboard-inlay').trim() || '#9a9a9a';
+  const nutColor   = style.getPropertyValue('--fretboard-nut').trim()   || '#ddd';
+  const dot        = style.getPropertyValue('--fretboard-dot').trim()   || '#ffffff';
+  const tonic      = style.getPropertyValue('--fretboard-tonic').trim() || '#e4a7bf';
+  const tonicEdge  = (style.getPropertyValue('--fretboard-tonic-edge')||'').trim() || '#4a1628';
+  const regularEdge = '#e5e5e5';
 
-  // frets
-  for(let f=0; f<=frets; f++){
-    const x = left + nutW + f*fretW;
+  // nut (flush rectangle)
+  const nutRect = document.createElementNS(svgns, "rect");
+  nutRect.setAttribute("x", boardLeft);
+  nutRect.setAttribute("y", boardTop);
+  nutRect.setAttribute("width", nutW);
+  nutRect.setAttribute("height", boardHeight);
+  nutRect.setAttribute("fill", nutColor);
+  svg.appendChild(nutRect);
+
+  // bridge/end (flush right edge)
+  const bridgeLine = document.createElementNS(svgns, "line");
+  bridgeLine.setAttribute("x1", boardRight);
+  bridgeLine.setAttribute("y1", boardTop);
+  bridgeLine.setAttribute("x2", boardRight);
+  bridgeLine.setAttribute("y2", boardBottom);
+  bridgeLine.setAttribute("stroke", gridColor);
+  bridgeLine.setAttribute("stroke-width", 2.5);
+  svg.appendChild(bridgeLine);
+
+  // intermediate frets (exclude nut & right edge)
+  for (let f = 1; f < fretsCount; f++) {
+    const x = boardLeft + nutW + f * fretW;
     const line = document.createElementNS(svgns, "line");
-    line.setAttribute("x1", x); line.setAttribute("y1", top);
-    line.setAttribute("x2", x); line.setAttribute("y2", H-24);
-    line.setAttribute("stroke", f===0 ? nut : gridColor);
-    line.setAttribute("stroke-width", f===0 ? 4 : 2);
-    svg.appendChild(line);
-  }
-  // strings
-  for(let s=0; s<strings; s++){
-    const y = top + s*((H-48)/Math.max(1,(strings-1)));
-    const line = document.createElementNS(svgns, "line");
-    line.setAttribute("x1", left); line.setAttribute("y1", y);
-    line.setAttribute("x2", W-left); line.setAttribute("y2", y);
+    line.setAttribute("x1", x); line.setAttribute("y1", boardTop);
+    line.setAttribute("x2", x); line.setAttribute("y2", boardBottom);
     line.setAttribute("stroke", gridColor);
     line.setAttribute("stroke-width", 2);
     svg.appendChild(line);
   }
-  // inlays
-  const inlays = [3,5,7,9,15,17,19,21];
-  inlays.forEach(f=>{
-    if (f>frets) return;
-    const cx = left + nutW + (f-0.5)*fretW, cy = H/2;
-    const c = document.createElementNS(svgns, "circle");
-    c.setAttribute("cx", cx); c.setAttribute("cy", cy);
-    c.setAttribute("r", 6); c.setAttribute("fill", inlay); c.setAttribute("opacity",".6");
-    svg.appendChild(c);
-  });
-  if (12<=frets){
-    const cx = left + nutW + (12-0.5)*fretW;
-    [H/2 - 12, H/2 + 12].forEach(cy=>{
-      const c = document.createElementNS(svgns, "circle");
-      c.setAttribute("cx", cx); c.setAttribute("cy", cy);
-      c.setAttribute("r", 6); c.setAttribute("fill", inlay); c.setAttribute("opacity",".6");
-      svg.appendChild(c);
-    });
+
+  // strings (flush left/right)
+  for (let s = 0; s < strings; s++) {
+    const y = boardTop + s * (boardHeight / Math.max(1, (strings - 1)));
+    const line = document.createElementNS(svgns, "line");
+    line.setAttribute("x1", boardLeft);
+    line.setAttribute("y1", y);
+    line.setAttribute("x2", boardRight);
+    line.setAttribute("y2", y);
+    line.setAttribute("stroke", gridColor);
+    line.setAttribute("stroke-width", 2);
+    svg.appendChild(line);
   }
 
-  // notes (scale tones)
-  for(let s=0; s<strings; s++){
-    const openPc = parseNotePc(tuning[strings-1 - s]); // bottom of SVG = lowest string
-    const y = top + s*((H-48)/Math.max(1,(strings-1)));
-    for(let f=0; f<=frets; f++){
+  // inlays below the board
+  {
+    const inlayY = boardBottom + 14;
+    const r = 2;
+    const singleInlays = [3,5,7,9,15,17,19,21];
+    singleInlays.forEach(f => {
+      if (f > fretsCount) return;
+      const cx = boardLeft + nutW + (f - 0.5) * fretW;
+      const c = document.createElementNS(svgns, "circle");
+      c.setAttribute("cx", cx);
+      c.setAttribute("cy", inlayY);
+      c.setAttribute("r", r);
+      c.setAttribute("fill", inlay);
+      c.setAttribute("opacity", ".6");
+      svg.appendChild(c);
+    });
+    if (12 <= fretsCount) {
+      const cx = boardLeft + nutW + (12 - 0.5) * fretW;
+      const spacing = 10;
+      [cx - spacing/2, cx + spacing/2].forEach(x => {
+        const c = document.createElementNS(svgns, "circle");
+        c.setAttribute("cx", x);
+        c.setAttribute("cy", inlayY);
+        c.setAttribute("r", r);
+        c.setAttribute("fill", inlay);
+        c.setAttribute("opacity", ".6");
+        svg.appendChild(c);
+      });
+    }
+  }
+
+  // notes (scale tones) — slightly larger dots
+  for (let s = 0; s < strings; s++) {
+    const openPc = parseNotePc(tuning[strings - 1 - s]); // bottom of SVG = lowest string
+    const y = boardTop + s * (boardHeight / Math.max(1, (strings - 1)));
+    for (let f = 0; f <= fretsCount; f++) {
       const pcHere = (openPc + f) % 12;
       const isScaleTone = semis.some(semi => (tonicPc + semi) % 12 === pcHere);
       if (!isScaleTone) continue;
+
       const isTonic = pcHere === tonicPc;
-      const cx = left + nutW + (f-0.5)*fretW;
-      const r = isTonic ? 8 : 7;
+      const cx = boardLeft + nutW + (f - 0.5) * fretW;
+      const r = isTonic ? 10 : 9;
+
       const c = document.createElementNS(svgns, "circle");
-      c.setAttribute("cx", cx); c.setAttribute("cy", y);
+      c.setAttribute("cx", cx);
+      c.setAttribute("cy", y);
       c.setAttribute("r", r);
       c.setAttribute("fill", isTonic ? tonic : dot);
-      c.setAttribute("stroke", "#ddd");
-      c.setAttribute("stroke-width", isTonic ? 1.6 : 1.2);
+      c.setAttribute("stroke", isTonic ? tonicEdge : regularEdge);
+      c.setAttribute("stroke-width", isTonic ? 2 : 1.6);
       svg.appendChild(c);
     }
   }
+
   wrap.appendChild(svg);
 }
 function updateDiagramVisibility(){
@@ -890,8 +945,13 @@ function pick(){
     if (pc!=null){ const freq = notePcToFreq(pc, state.drone.octave); startDrone(freq); }
   } else { stopDrone(); }
 
-  /* Timer: restart every Generate (change to if(state.timer.auto) ... if you prefer) */
-  startTimer(state.timer.dur);
+  /* Timer: only auto-start if enabled; otherwise stop & clear the inline display */
+  if (state.timer.auto) {
+    startTimer(state.timer.dur);
+  } else {
+    stopTimer();
+    updateInlineTimer(null);
+  }
 
   /* Diagram */
   updateDiagramVisibility();
@@ -929,11 +989,9 @@ window.addEventListener("resize", fitLines);
 window.addEventListener("orientationchange", () => setTimeout(fitLines, 60));
 
 /* ===================== SRS boot ===================== */
-function loadSRS(){ try{ const x=localStorage.getItem('rolodex_srs_v2'); return x? JSON.parse(x) : {}; }catch{return{};} }
-function saveSRS(){ try{ localStorage.setItem('rolodex_srs_v2', JSON.stringify(state.srs.map)); }catch{} }
 state.srs.map = loadSRS();
-function srsDueCount(){ const now=Date.now(); let n=0; for(const id in state.srs.map){ if(state.srs.map[id].due<=now) n++; } $("dueCount").textContent=n; }
-srsDueCount();
+function srsDueCountBoot(){ const now=Date.now(); let n=0; for(const id in state.srs.map){ if(state.srs.map[id].due<=now) n++; } $("dueCount").textContent=n; }
+srsDueCountBoot();
 
 /* ===== Render filters and finalize ===== */
 renderFilters();
