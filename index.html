@@ -22,11 +22,12 @@
     /* Fretboard colors (Pure Black scheme) */
     --fretboard-board: #000000;    /* pure black background */
     --fretboard-grid:  #cfcfcf;    /* light gray frets/strings */
-    --fretboard-inlay: #9a9a9a;    /* gray inlays */
+    --fretboard-inlay: #9a9a9a;    /* legacy inlay tone (we reuse for markers) */
+    --fretboard-marker: #8a8a8a;   /* NEW: fret marker color */
     --fretboard-nut:   #dddddd;    /* nut stays light */
     --fretboard-dot:   #ffffff;    /* white dots */
-    --fretboard-tonic: #e4a7bf;    /* lighter burgundy/pink fill */
-    --fretboard-tonic-edge: #4a1628; /* darker plum border */
+    --fretboard-tonic: #e4a7bf;    /* not used now (we render roots as white with red edge) */
+    --fretboard-tonic-edge: #ff0000; /* red border for root notes */
   }
 
   html, body { height: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -236,6 +237,26 @@
           <label>Diagram</label>
           <label><input id="diagEnable" type="checkbox"> Show fretboard diagram</label>
         </div>
+
+        <!-- NEW: Fret marker controls -->
+        <div id="markerControls" style="display:none;">
+          <div class="field">
+            <label>Fret markers</label>
+            <label><input id="markersEnable" type="checkbox" checked> Show under board</label>
+          </div>
+          <div class="field">
+            <label>Marker shape</label>
+            <select id="markerShape">
+              <option value="dot" selected>Dot</option>
+              <option value="square">Square</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Numbers</label>
+            <label><input id="markerNums" type="checkbox"> Show 3,5,7,9,12…</label>
+          </div>
+        </div>
+        <!-- /NEW -->
       </div>
     </div>
 
@@ -383,7 +404,10 @@ function stateToJSON(s){
     diagEnable: s.diagEnable,
     drone: { enabled:s.drone.enabled, octave:s.drone.octave, volume:s.drone.volume },
     timer: { dur:s.timer.dur, auto:s.timer.auto },
-    srs: { enabled:s.srs.enabled }
+    srs: { enabled:s.srs.enabled },
+
+    /* NEW: diagram marker prefs */
+    markers: { enable: s.markers.enable, shape: s.markers.shape, nums: s.markers.nums }
   };
 }
 function safeSet(v, fallbackArr){
@@ -425,7 +449,14 @@ function loadState(){
         dur: [15,30,60,90,120,180].includes(+x.timer?.dur) ? +x.timer.dur : 60,
         auto: !!x.timer?.auto
       },
-      srs: { enabled: !!x.srs?.enabled, map: {} }
+      srs: { enabled: !!x.srs?.enabled, map: {} },
+
+      /* NEW: diagram marker prefs with safe fallbacks */
+      markers: {
+        enable: x.markers?.enable !== false,     // default true
+        shape: (x.markers?.shape === 'square') ? 'square' : 'dot',
+        nums: !!x.markers?.nums
+      }
     };
   }catch{ return null; }
 }
@@ -452,10 +483,13 @@ let state = loadState() || {
   diagEnable: false,
   drone: { enabled:false, octave:3, volume:0.25 },
   timer: { dur:60, auto:false },
-  srs: { enabled:false, map:{} }
+  srs: { enabled:false, map:{} },
+
+  /* NEW */
+  markers: { enable:true, shape:'dot', nums:false }
 };
 
-/* ===================== Filters UI ===================== */
+/* ===================== Filters UI (unchanged) ===================== */
 function groupTotals(group){
   if (group==='strings') return BASE_STRINGS.length;
   if (group==='notes')   return BASE_NOTES.length;
@@ -620,7 +654,20 @@ $("maxFret").addEventListener("change", ()=> { state.maxFret = parseInt($("maxFr
 $("preferLow").checked = state.preferLow;
 $("preferLow").addEventListener("change", ()=> { state.preferLow = $("preferLow").checked; saveStateThrottled(); });
 $("diagEnable").checked = state.diagEnable;
-$("diagEnable").addEventListener("change", ()=> { state.diagEnable = $("diagEnable").checked; saveStateThrottled(); updateDiagramVisibility(); });
+$("diagEnable").addEventListener("change", ()=> {
+  state.diagEnable = $("diagEnable").checked;
+  $("markerControls").style.display = state.diagEnable ? '' : 'none';
+  saveStateThrottled(); updateDiagramVisibility();
+});
+
+/* NEW: bind marker controls */
+$("markerControls").style.display = state.diagEnable ? '' : 'none';
+$("markersEnable").checked = state.markers.enable;
+$("markerShape").value = state.markers.shape;
+$("markerNums").checked  = state.markers.nums;
+$("markersEnable").addEventListener("change", ()=>{ state.markers.enable = $("markersEnable").checked; saveStateThrottled(); });
+$("markerShape").addEventListener("change", ()=>{ state.markers.shape  = $("markerShape").value;   saveStateThrottled(); });
+$("markerNums").addEventListener("change",  ()=>{ state.markers.nums   = $("markerNums").checked;  saveStateThrottled(); });
 
 /* ===================== Drone & Timer ===================== */
 let audio = { ctx:null, gain:null, osc:null };
@@ -728,6 +775,7 @@ function intervalStringToSemis(ivlStr){
   return ivlStr.split('-').map(t => INTERVAL_TO_SEMITONE[t.trim()] ?? null).filter(v=>v!==null);
 }
 
+/* ===================== Diagram ===================== */
 function drawFretboardDiagram(noteVal, scale, tuning, opts){
   const wrap = $("fretSvgWrap");
   wrap.innerHTML = "";
@@ -740,7 +788,10 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
   const semis = intervalStringToSemis(scale.intervals);
 
   const W = 1000;
-  const H = Math.max(180, 50 + strings*28); /* responsive height based on string count */
+  /* reserve a bottom gutter for fret markers (so they never collide) */
+  const BASE_H = Math.max(180, 50 + strings*28);
+  const GUTTER = 40;                 // under-board space
+  const H = BASE_H + GUTTER;
 
   const svgns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgns, "svg");
@@ -754,7 +805,7 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
   const boardLeft   = PAD_X;
   const boardRight  = W - PAD_X;
   const boardTop    = PAD_Y;
-  const boardBottom = H - PAD_Y;
+  const boardBottom = H - PAD_Y - GUTTER;
   const boardWidth  = boardRight - boardLeft;
   const boardHeight = boardBottom - boardTop;
 
@@ -762,21 +813,13 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
   const fretsCount = frets;
   const fretW = (boardWidth - nutW) / fretsCount;
 
-  // background (full SVG)
-  const bg = document.createElementNS(svgns, "rect");
-  bg.setAttribute("x", 0); bg.setAttribute("y", 0);
-  bg.setAttribute("width", W); bg.setAttribute("height", H);
-  bg.setAttribute("fill", getComputedStyle(document.documentElement)
-    .getPropertyValue('--fretboard-board').trim() || '#000');
-  svg.appendChild(bg);
-
-  const style = getComputedStyle(document.documentElement);
-  const gridColor  = style.getPropertyValue('--fretboard-grid').trim()  || '#cfcfcf';
-  const inlay      = style.getPropertyValue('--fretboard-inlay').trim() || '#9a9a9a';
-  const nutColor   = style.getPropertyValue('--fretboard-nut').trim()   || '#ddd';
-  const dot        = style.getPropertyValue('--fretboard-dot').trim()   || '#ffffff';
-  const tonic      = style.getPropertyValue('--fretboard-tonic').trim() || '#e4a7bf';
-  const tonicEdge  = (style.getPropertyValue('--fretboard-tonic-edge')||'').trim() || '#4a1628';
+  // styles
+  const style       = getComputedStyle(document.documentElement);
+  const gridColor   = style.getPropertyValue('--fretboard-grid').trim()    || '#cfcfcf';
+  const markerCol   = style.getPropertyValue('--fretboard-marker').trim()  || style.getPropertyValue('--fretboard-inlay').trim() || '#8a8a8a';
+  const nutColor    = style.getPropertyValue('--fretboard-nut').trim()     || '#ddd';
+  const dotFill     = style.getPropertyValue('--fretboard-dot').trim()     || '#ffffff';
+  const tonicEdge   = style.getPropertyValue('--fretboard-tonic-edge').trim() || '#ff0000';
   const regularEdge = '#e5e5e5';
 
   // nut (flush rectangle)
@@ -822,63 +865,98 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
     svg.appendChild(line);
   }
 
-  // inlays below the board
-  {
-    const inlayY = boardBottom + 14;
-    const r = 2;
-    const singleInlays = [3,5,7,9,15,17,19,21];
-    singleInlays.forEach(f => {
-      if (f > fretsCount) return;
-      const cx = boardLeft + nutW + (f - 0.5) * fretW;
-      const c = document.createElementNS(svgns, "circle");
-      c.setAttribute("cx", cx);
-      c.setAttribute("cy", inlayY);
-      c.setAttribute("r", r);
-      c.setAttribute("fill", inlay);
-      c.setAttribute("opacity", ".6");
-      svg.appendChild(c);
-    });
-    if (12 <= fretsCount) {
-      const cx = boardLeft + nutW + (12 - 0.5) * fretW;
-      const spacing = 10;
-      [cx - spacing/2, cx + spacing/2].forEach(x => {
-        const c = document.createElementNS(svgns, "circle");
-        c.setAttribute("cx", x);
-        c.setAttribute("cy", inlayY);
-        c.setAttribute("r", r);
-        c.setAttribute("fill", inlay);
-        c.setAttribute("opacity", ".6");
-        svg.appendChild(c);
-      });
-    }
-  }
-
-  // notes (scale tones) — slightly larger dots
+  // notes (scale tones) — fretted only
   for (let s = 0; s < strings; s++) {
-    const openPc = parseNotePc(tuning[strings - 1 - s]); // bottom of SVG = lowest string
+    const openPc = parseNotePc(tuning[strings - 1 - s]); // bottom = lowest string
     const y = boardTop + s * (boardHeight / Math.max(1, (strings - 1)));
-    for (let f = 0; f <= fretsCount; f++) {
+    for (let f = 1; f <= fretsCount; f++) {
       const pcHere = (openPc + f) % 12;
       const isScaleTone = semis.some(semi => (tonicPc + semi) % 12 === pcHere);
       if (!isScaleTone) continue;
-
       const isTonic = pcHere === tonicPc;
       const cx = boardLeft + nutW + (f - 0.5) * fretW;
       const r = isTonic ? 10 : 9;
-
       const c = document.createElementNS(svgns, "circle");
-      c.setAttribute("cx", cx);
-      c.setAttribute("cy", y);
+      c.setAttribute("cx", cx); c.setAttribute("cy", y);
       c.setAttribute("r", r);
-      c.setAttribute("fill", isTonic ? tonic : dot);
+      c.setAttribute("fill", dotFill);
       c.setAttribute("stroke", isTonic ? tonicEdge : regularEdge);
-      c.setAttribute("stroke-width", isTonic ? 2 : 1.6);
+      c.setAttribute("stroke-width", isTonic ? 4 : 1.6);
       svg.appendChild(c);
     }
   }
 
-  wrap.appendChild(svg);
+  // NEW: Fret-number markers under the board (3,5,7,9,12,15,17,19,21,24)
+  if (state.markers.enable) {
+    const markerY = boardBottom + Math.round(GUTTER * 0.66); // comfortably inside gutter
+    const singles = [3,5,7,9,15,17,19,21];
+    const dbls    = [12,24];
+
+    const drawDot = (x, size=3) => {
+      if (state.markers.shape === 'square') {
+        const half = size;
+        const r = document.createElementNS(svgns, "rect");
+        r.setAttribute("x", x - half);
+        r.setAttribute("y", markerY - half);
+        r.setAttribute("width", size*2);
+        r.setAttribute("height", size*2);
+        r.setAttribute("rx", 1.5);
+        r.setAttribute("fill", markerCol);
+        r.setAttribute("opacity", ".8");
+        svg.appendChild(r);
+      } else {
+        const c = document.createElementNS(svgns, "circle");
+        c.setAttribute("cx", x);
+        c.setAttribute("cy", markerY);
+        c.setAttribute("r", size);
+        c.setAttribute("fill", markerCol);
+        c.setAttribute("opacity", ".8");
+        svg.appendChild(c);
+      }
+    };
+
+    // singles
+    singles.forEach(f=>{
+      if (f>fretsCount) return;
+      const cx = boardLeft + nutW + (f - 0.5) * fretW;
+      drawDot(cx, 3);
+      if (state.markers.nums) {
+        const t = document.createElementNS(svgns, "text");
+        t.setAttribute("x", cx);
+        t.setAttribute("y", markerY + 12);
+        t.setAttribute("text-anchor", "middle");
+        t.setAttribute("font-size", "10");
+        t.setAttribute("fill", markerCol);
+        t.setAttribute("opacity", ".9");
+        t.textContent = String(f);
+        svg.appendChild(t);
+      }
+    });
+
+    // double markers at 12 (and 24 if present)
+    dbls.forEach(f=>{
+      if (f>fretsCount) return;
+      const cx = boardLeft + nutW + (f - 0.5) * fretW;
+      const spacing = 10;
+      drawDot(cx - spacing/2, 3);
+      drawDot(cx + spacing/2, 3);
+      if (state.markers.nums) {
+        const t = document.createElementNS(svgns, "text");
+        t.setAttribute("x", cx);
+        t.setAttribute("y", markerY + 12);
+        t.setAttribute("text-anchor", "middle");
+        t.setAttribute("font-size", "10");
+        t.setAttribute("fill", markerCol);
+        t.setAttribute("opacity", ".9");
+        t.textContent = String(f);
+        svg.appendChild(t);
+      }
+    });
+  }
+
+  $("fretSvgWrap").appendChild(svg);
 }
+
 function updateDiagramVisibility(){
   $("diagramCard").classList.toggle("hidden", !(state.diagEnable && state.mode==='guitar'));
 }
@@ -916,18 +994,16 @@ function pick(){
   const ivlStr  = toMusical(scaleChoice.intervals);
   const metaStr = `(ID: ${scaleChoice.id}, Size: ${scaleChoice.size})`;
 
-  // Compute fret (moved to TOP line)
+  // Compute fret (top line)
   const fret = (state.mode==='guitar' && state.showFret && stringVal)
       ? pickFretFor(noteVal, parseInt(stringVal,10))
       : null;
 
-  // TOP: "String: X · Fret: Y" (Guitar/Bass only)
   const topParts = [];
   if (state.mode === 'guitar' && stringVal) topParts.push(`<span class="label">String:</span> ${stringVal}`);
   if (state.mode === 'guitar' && fret != null) topParts.push(`<span class="label">Fret:</span> ${fret}`);
   const topLine = topParts.length ? `<div class="line fit">${topParts.join(' · ')}</div>` : '';
 
-  // LINE 2: NO labels — "Note · ScaleName (meta)"
   const secondParts = [ toMusical(noteVal), nameStr ];
   const secondLine = `<div class="line">${secondParts.filter(Boolean).join(' · ')} <span class="meta">${metaStr}</span></div>`;
 
@@ -945,7 +1021,7 @@ function pick(){
     if (pc!=null){ const freq = notePcToFreq(pc, state.drone.octave); startDrone(freq); }
   } else { stopDrone(); }
 
-  /* Timer: only auto-start if enabled; otherwise stop & clear the inline display */
+  /* Timer: only auto-start if enabled */
   if (state.timer.auto) {
     startTimer(state.timer.dur);
   } else {
