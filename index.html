@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>The Rolodex From Hades [Version 1.4]</title>
+<title>The Rolodex From Hades [Version 1.6]</title>
 
 <style>
   /* =========================
@@ -49,8 +49,18 @@
      ========================= */
   h1 { font-size:1.6rem; font-weight:600; margin:0 0 8px; }
   h2 { font-size:1rem; font-weight:400; margin:0 0 16px; color:var(--muted); }
-  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .row {
+    display: flex;
+    justify-content: space-between; /* pushes left and right groups apart */
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
 
+  .left-buttons, .right-buttons {
+    display: flex;
+    gap: 10px;
+  }
   /* Buttons */
   button {
     padding:12px 20px; border-radius:var(--radius); border:1px solid var(--accent);
@@ -204,15 +214,21 @@
 <!-- ======================================================
      HEADER + TOP-LEVEL ACTIONS
      ====================================================== -->
-<h1>The Rolodex From Hades [Version 1.4]</h1>
+<h1>The Rolodex From Hades [Version 1.6]</h1>
 <h2>The "rolodex" offers a systematic and gamified approach to help musicians learn to improvise. The material is derived from a logical system of intervallic sequence organization. It bears similarities to pitch-class set theory and particularly draws inspiration from two musical visionaries: Allan Holdsworth and Wayne Krantz. The tool - in addition to comprehensively generating scales and intervallic patterns - records the musician's progress. These charachteristics combine to help musicians internalize the presented material and devlop valuable skills in executing, thinking about and applying scales in harmonic and melodic contexts.</h2>
 
 <div class="row">
-  <button id="pickBtn" class="primary"><b>Generate</b></button>
-  <button id="filtersBtn">Filters</button>
-  <button id="optionsBtn">Options</button>
-  <button id="helpBtn" title="How this app works">Instructions</button>
+  <div class="left-buttons">
+    <button id="pickBtn" class="primary"><b>Generate</b></button>
+    <button id="stopBtn">Stop</button>
+  </div>
+  <div class="right-buttons">
+    <button id="filtersBtn">Filters</button>
+    <button id="optionsBtn">Options</button>
+    <button id="instructionsBtn">Instructions</button>
+  </div>
 </div>
+
 <!-- ======================================================
      MAIN RESULT PANEL (clickable to Generate)
      ====================================================== -->
@@ -1177,18 +1193,24 @@ function fmt(sec){
   const s = String(sec%60).padStart(2,'0');
   return `${m}:${s}`;
 }function startTimer(secs){
-  stopTimer();
-  timer.running=true; timer.left=secs;
-  $("timerBtn").textContent='Stop';
-  $("timeLeft").textContent=fmt(timer.left);
-  updateInlineTimer(timer.left);
-  timer.tid=setInterval(()=>{
-    timer.left--;
-    $("timeLeft").textContent=fmt(Math.max(0,timer.left));
-    updateInlineTimer(Math.max(0,timer.left));
-    if(timer.left<=0){ stopTimer(); beep(); }
-  },1000);
-}
+    stopTimer();
+    timer.running = true;
+    timer.left = secs;
+    $("timerBtn").textContent = 'Stop';
+    $("timeLeft").textContent = fmt(timer.left);
+    updateInlineTimer(timer.left);
+    timer.tid = setInterval(()=>{
+      timer.left--;
+      $("timeLeft").textContent = fmt(Math.max(0,timer.left));
+      updateInlineTimer(Math.max(0,timer.left));
+      if (timer.left <= 0) {
+        stopTimer();
+        beep();
+        pick();                       // generate new material
+        startTimer(state.timer.dur);  // restart countdown
+      }
+    }, 1000);
+  }
 function stopTimer(){
   if(timer.tid){ clearInterval(timer.tid); timer.tid=null; }
   timer.running=false;
@@ -1528,7 +1550,11 @@ function pick(){
 
 /* Buttons & quick actions */
 $("pickBtn").addEventListener("click", pick);
-
+$("stopBtn").addEventListener("click", () => {
+  stopTimer();   // stop countdown
+  stopDrone();   // silence drone
+});
+    
 /* Spacebar to Generate (unless typing in inputs) */
 document.addEventListener("keydown", (e)=>{
   const tag = (e.target && e.target.tagName) ? e.target.tagName : "";
