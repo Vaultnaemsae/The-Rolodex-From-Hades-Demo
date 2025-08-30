@@ -1,221 +1,101 @@
 <!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>The Rolodex From Hades [Demo Ver 1.7]</title>
+<title>The Rolodex From Hades [Demo Ver 1.9]</title>
 
 <style>
-  /* =========================
-     THEME & LAYOUT VARIABLES
-     - Colors, spacing, radii
-     - App-wide sizing constraints
-     ========================= */
-  :root {
-    --bg: #2c0f1a;        /* deep maroon background */
-    --card-bg: #111;      /* near-black panels */
-    --border: #444;       /* muted border */
-    --accent: #fff;       /* bright white for borders/buttons */
-    --accent-hover: #d9c1cf;
-    --text: #f5f5f5;      /* main text */
-    --muted: #a78b9c;     /* muted labels */
-    --radius: 14px;
-
-    --result-font: 1.6rem;
-    --result-pad: 32px;
-    --result-maxw: 860px;
-
-    --filters-maxw: 1200px;
-
-    /* Fretboard color scheme */
-    --fretboard-board: #000000;    /* pure black background */
-    --fretboard-grid:  #cfcfcf;    /* light gray frets/strings */
-    --fretboard-inlay: #9a9a9a;    /* legacy inlay tone (also used as marker fallback) */
-    --fretboard-marker: #8a8a8a;   /* under-board fret markers */
-    --fretboard-nut:   #dddddd;    /* nut color */
-    --fretboard-dot:   #ffffff;    /* main dot fill */
-    --fretboard-tonic: #e4a7bf;    /* unused now */
-    --fretboard-tonic-edge: #ff0000; /* root-note stroke (red) */
+  :root{
+    --bg:#2c0f1a; --card-bg:#111; --border:#444; --accent:#fff; --accent-hover:#d9c1cf;
+    --text:#f5f5f5; --muted:#a78b9c; --radius:14px;
+    --result-font:1.6rem; --result-pad:32px; --result-maxw:860px; --filters-maxw:1200px;
+    /* Fretboard colors */
+    --fretboard-board:#000; --fretboard-grid:#cfcfcf; --fretboard-inlay:#9a9a9a;
+    --fretboard-marker:#8a8a8a; --fretboard-nut:#ddd; --fretboard-dot:#fff;
+    --fretboard-tonic:#e4a7bf; --fretboard-tonic-edge:#f00;
   }
+  *{box-sizing:border-box}
+  html,body{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Segoe UI Symbol","Noto Music","Apple Symbols",sans-serif;background:var(--bg);color:var(--text);padding:24px}
+  h1{font-size:1.6rem;font-weight:600;margin:0 0 8px}
+  h2{font-size:1rem;font-weight:400;margin:0 0 16px;color:var(--muted)}
+  .row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+  .left-buttons,.right-buttons{display:flex;gap:10px}
+  button{padding:12px 20px;border-radius:var(--radius);border:1px solid var(--accent);background:var(--card-bg);color:var(--text);cursor:pointer;font-size:1.05rem;transition:background .2s}
+  button:hover{background:var(--border)}
+  button.primary{background:var(--accent);color:#000;font-weight:700}
+  button.primary:hover{background:var(--accent-hover);color:#111}
 
-  html, body { height: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-  body {
-    margin:0;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto,
-                 "Segoe UI Symbol", "Noto Music", "Apple Symbols", sans-serif;
-    background: var(--bg); color: var(--text); padding: 24px;
-  }
+  .panel{margin-top:20px;padding:var(--result-pad);font-size:var(--result-font);font-weight:600;background:var(--card-bg);border:2px solid var(--accent);border-radius:var(--radius);width:min(100%,var(--result-maxw));margin-inline:auto;box-shadow:0 0 12px rgba(255,255,255,.15)}
+  .result{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;line-height:1.4;cursor:pointer}
+  .result .line{display:block;width:100%;text-align:center;line-height:1.35}
+  .result .line.fit{white-space:nowrap;overflow:hidden;text-overflow:clip}
+  .result .meta{color:#888;font-weight:400;font-size:.9em}
+  .result .label{color:#bbb;font-weight:400}
+  .result .timer-inline{margin-top:10px;font-size:1.15rem;color:var(--text);font-variant-numeric:tabular-nums}
 
-  /* =========================
-     HEADINGS & BASIC LAYOUT
-     ========================= */
-  h1 { font-size:1.6rem; font-weight:600; margin:0 0 8px; }
-  h2 { font-size:1rem; font-weight:400; margin:0 0 16px; color:var(--muted); }
-  .row {
-    display: flex;
-    justify-content: space-between; /* pushes left and right groups apart */
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
+  .diagram.hidden{display:none}
+  .diagram .wrap{width:100%}
+  .diagram svg{width:100%;height:auto;display:block}
 
-  .left-buttons, .right-buttons {
-    display: flex;
-    gap: 10px;
-  }
-  /* Buttons */
-  button {
-    padding:12px 20px; border-radius:var(--radius); border:1px solid var(--accent);
-    background:var(--card-bg); color:var(--text); cursor:pointer; font-size:1.1rem;
-    transition:background .2s;
-  }
-  button:hover { background:var(--border); }
-  button.primary { background:var(--accent); color:#000; font-weight:700; }
-  button.primary:hover { background:var(--accent-hover); color:#111; }
+  .filters{margin-top:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;width:min(100%,var(--filters-maxw));margin-inline:auto}
+  .filters.hidden{display:none}
+  .filters-top{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-bottom:8px}
+  .filters-inner{display:flex;flex-wrap:wrap;gap:12px}
+  .filters-col{display:flex;flex-direction:column;gap:8px;min-width:0}
+  .filters-col header{display:flex;align-items:center;justify-content:space-between}
+  .filters-col h3{margin:0;font-size:1rem;font-weight:600}
+  .filters-col.strings{flex:0 0 140px}
+  .filters-col.notes{flex:0 0 180px}
+  .filters-col.sizes{flex:0 0 140px}
+  .filters-col.scales{flex:2 1 640px;min-width:520px}
+  .mini-btns button{font-size:.8rem;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:#1b1b1b;color:var(--text)}
+  .checklist{display:grid;grid-template-columns:1fr;gap:6px}
+  .checklist label{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:#161616;cursor:pointer;min-width:0;overflow:hidden}
+  .checklist input{transform:scale(1.1)}
+  .checklist label>span:first-of-type{flex:1;min-width:0;white-space:normal}
+  .checklist .muted{color:var(--muted);font-size:.85rem;margin-left:auto;white-space:nowrap}
+  .pills{display:grid;grid-template-columns:1fr;gap:8px}
+  .pill{display:inline-flex;justify-content:center;align-items:center;gap:6px;border:1px solid var(--border);background:#161616;color:var(--text);border-radius:999px;padding:8px 12px;cursor:pointer;user-select:none;font-size:.95rem;width:100%}
+  .pill input{display:none}
+  .pill.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
 
-  /* =========================
-     PANEL SHARED STYLING
-     - Used by main result + diagram
-     ========================= */
-  .panel {
-    margin-top:20px; padding: var(--result-pad); font-size: var(--result-font); font-weight:600;
-    background:var(--card-bg); border:2px solid var(--accent); border-radius:var(--radius);
-    width: min(100%, var(--result-maxw)); margin-inline: auto; box-sizing: border-box;
-    box-shadow:0 0 12px rgba(255,255,255,.15);
-  }
+  .options{margin-top:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;width:min(100%,var(--filters-maxw));margin-inline:auto}
+  .options.hidden{display:none}
+  .options-grid{display:flex;flex-wrap:wrap;gap:12px}
+  .opt-col{flex:1 1 360px;min-width:320px;border:1px solid var(--border);border-radius:12px;padding:12px;background:#151515}
+  .opt-col h3{margin:0 0 8px;font-size:1rem}
+  .field{display:flex;gap:8px;align-items:center;margin:6px 0}
+  .field label{min-width:140px;color:var(--muted)}
+  .field input[type="number"],.field select,.field input[type="text"]{background:#1c1c1c;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 8px}
+  .tuning-grid{display:grid;grid-template-columns:repeat(2,minmax(120px,1fr));gap:8px}
+  .tuning-grid .tg-row{display:flex;gap:8px;align-items:center}
+  .note-input{width:100%}
+  .srs-ctrls{margin-top:10px;display:flex;gap:8px;justify-content:center}
+  .srs-ctrls button{padding:8px 12px;font-size:1rem}
+  .timer{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .timer .timeleft{margin-left:auto;color:#ddd;font-variant-numeric:tabular-nums}
 
-  /* Main result panel content */
-  .result {
-    display:flex; flex-direction:column; justify-content:center; align-items:center;
-    text-align:center; line-height:1.4;
-    cursor: pointer; /* tap/click to Generate */
-  }
-  .result .line { display:block; width:100%; text-align:center; line-height:1.35; }
-  .result .line.fit { white-space:nowrap; overflow:hidden; text-overflow:clip; }
-  .result .meta  { color: #888; font-weight: normal; font-size: 0.9em; }
-  .result .label { color: #bbb; font-weight: normal; }
+  @media (max-width:1100px){.filters-col.scales{min-width:min(100%,520px);flex:1 1 520px}}
+  @media (max-width:600px){.filters-col.strings,.filters-col.notes,.filters-col.sizes,.filters-col.scales{flex:1 1 100%;min-width:0}}
 
-  /* Inline timer readout inside result panel */
-  .result .timer-inline {
-    margin-top: 10px;
-    font-size: 1.15rem;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* =========================
-     FRETBOARD DIAGRAM PANEL
-     ========================= */
-  .diagram {}
-  .diagram.hidden { display:none; }
-  .diagram .wrap { width:100%; }
-  .diagram svg { width: 100%; height: auto; display:block; }
-
-  /* =========================
-     FILTERS PANEL
-     ========================= */
-  .filters {
-    margin-top: 12px; background: var(--card-bg); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 14px;
-    width: min(100%, var(--filters-maxw)); margin-inline: auto; box-sizing: border-box;
-  }
-  .filters.hidden { display: none; }
-  .filters-top { display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-bottom:8px; }
-  .filters-inner { display:flex; flex-wrap:wrap; gap:12px; }
-  .filters-col { display:flex; flex-direction:column; gap:8px; box-sizing:border-box; min-width:0; }
-  .filters-col header { display:flex; align-items:center; justify-content:space-between; }
-  .filters-col h3 { margin:0; font-size:1rem; font-weight:600; }
-
-  /* Column widths tuned to prevent wrapping/overlap at desktop sizes */
-  .filters-col.strings { flex: 0 0 140px; }
-  .filters-col.notes   { flex: 0 0 180px; }
-  .filters-col.sizes   { flex: 0 0 140px; }
-  .filters-col.scales  { flex: 2 1 640px; min-width: 520px; }
-
-  .mini-btns button { font-size:.8rem; padding:4px 10px; border-radius:999px; border:1px solid var(--border); background:#1b1b1b; color:var(--text); }
-
-  .checklist { display:grid; grid-template-columns:1fr; gap:6px; }
-  .checklist label {
-    display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--border);
-    border-radius:8px; background:#161616; cursor:pointer; min-width:0; overflow:hidden;
-  }
-  .checklist input { transform:scale(1.1); }
-  .checklist label > span:first-of-type { flex:1; min-width:0; white-space:normal; }
-  .checklist .muted { color: var(--muted); font-size:.85rem; margin-left:auto; white-space:nowrap; }
-
-  .pills { display:grid; grid-template-columns:1fr; gap:8px; }
-  .pill { display:inline-flex; justify-content:center; align-items:center; gap:6px;
-    border:1px solid var(--border); background:#161616; color:var(--text); border-radius:999px; padding:8px 12px;
-    cursor:pointer; user-select:none; font-size:.95rem; width:100%; box-sizing:border-box; }
-  .pill input { display:none; }
-  .pill.active { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
-
-  /* =========================
-     OPTIONS PANEL
-     ========================= */
-  .options { margin-top:12px; background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); padding:14px;
-             width:min(100%, var(--filters-maxw)); margin-inline:auto; box-sizing:border-box; }
-  .options.hidden { display:none; }
-  .options-grid { display:flex; flex-wrap:wrap; gap:12px; }
-  .opt-col { flex: 1 1 360px; min-width:320px; border:1px solid var(--border); border-radius:12px; padding:12px; background:#151515; }
-  .opt-col h3 { margin:0 0 8px; font-size:1rem; }
-  .field { display:flex; gap:8px; align-items:center; margin:6px 0; }
-  .field label { min-width:140px; color:var(--muted); }
-  .field input[type="number"], .field select, .field input[type="text"] {
-    background:#1c1c1c; color:var(--text); border:1px solid var(--border); border-radius:8px; padding:6px 8px;
-  }
-  .tuning-grid { display:grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap:8px; }
-  .tuning-grid .tg-row { display:flex; gap:8px; align-items:center; }
-  .note-input { width:100%; }
-
-  .srs-ctrls { margin-top:10px; display:flex; gap:8px; justify-content:center; }
-  .srs-ctrls button { padding:8px 12px; font-size:1rem; }
-
-  .timer { margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .timer .timeleft { margin-left:auto; color:#ddd; font-variant-numeric: tabular-nums; }
-
-  @media (max-width:1100px) { .filters-col.scales { min-width:min(100%,520px); flex:1 1 520px; } }
-  @media (max-width:600px)  { .filters-col.strings, .filters-col.notes, .filters-col.sizes, .filters-col.scales { flex:1 1 100%; min-width:0; } }
-  /* ==== Help / Instructions modal ========================================= */
-  .modal {
-    position: fixed; inset: 0; display: none; z-index: 9999;
-    align-items: center; justify-content: center;
-    background: rgba(0,0,0,.55);
-  }
-  .modal.open { display: flex; }
-
-  .modal .sheet {
-    width: min(860px, 92vw); max-height: 86vh; overflow:auto;
-    background: var(--card-bg);
-    color: var(--text);
-    border: 2px solid var(--accent);
-    border-radius: var(--radius);
-    box-shadow: 0 10px 40px rgba(0,0,0,.6);
-  }
-
-  .modal .sheet header {
-    display:flex; align-items:center; justify-content:space-between;
-    padding: 14px 16px; border-bottom: 1px solid var(--border);
-  }
-  .modal .sheet header h3 {
-    margin:0; font-size:1.2rem; font-weight:700;
-  }
-  .modal .sheet header button {
-    padding: 6px 10px; font-size:.95rem;
-  }
-
-  .modal .sheet .content {
-    padding: 16px; line-height: 1.55; font-weight: 400; font-size: 1rem;
-  }
-  .modal .sheet .content h4 { margin: 16px 0 6px; font-size:1.05rem; }
-  .modal .sheet .content p,
-  .modal .sheet .content li { color: var(--muted); }
-  .modal .sheet .content code { background:#1b1b1b; padding:2px 6px; border-radius:6px; }
+  .modal{position:fixed;inset:0;display:none;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,.55)}
+  .modal.open{display:flex}
+  .modal .sheet{width:min(860px,92vw);max-height:86vh;overflow:auto;background:var(--card-bg);color:var(--text);border:2px solid var(--accent);border-radius:var(--radius);box-shadow:0 10px 40px rgba(0,0,0,.6)}
+  .modal .sheet header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+  .modal .sheet header h3{margin:0;font-size:1.2rem;font-weight:700}
+  .modal .sheet header button{padding:6px 10px;font-size:.95rem}
+  .modal .sheet .content{padding:16px;line-height:1.55;font-weight:400;font-size:1rem}
+  .modal .sheet .content h4{margin:16px 0 6px;font-size:1.05rem}
+  .modal .sheet .content p,.modal .sheet .content li{color:var(--muted)}
+  .modal .sheet .content code{background:#1b1b1b;padding:2px 6px;border-radius:6px}
 </style>
+</head>
+<body>
 
-<!-- ======================================================
-     HEADER + TOP-LEVEL ACTIONS
-     ====================================================== -->
-<h1>The Rolodex From Hades [Demo Ver 1.7]</h1>
-<h2>The "rolodex" offers a systematic and gamified approach to help musicians learn to improvise. The material is derived from a logical system of intervallic sequence organization. It bears similarities to pitch-class set theory and particularly draws inspiration from two musical visionaries: Allan Holdsworth and Wayne Krantz. The tool - in addition to comprehensively generating scales and intervallic patterns - records the musician's progress. These characteristics combine to help musicians internalize the presented material and devlop valuable skills in memorizing, recalling and applying scales harmonically and melodically.</h2>
+<h1>The Rolodex From Hades [Demo Ver 1.9]</h1>
+<h2>The "rolodex" offers a systematic and gamified approach to help musicians learn to improvise…</h2>
 
 <div class="row">
   <div class="left-buttons">
@@ -229,21 +109,12 @@
   </div>
 </div>
 
-<!-- ======================================================
-     MAIN RESULT PANEL (clickable to Generate)
-     ====================================================== -->
-<div id="out" class="panel result">—</div>
+<div id="out" class="panel result" aria-live="polite">—</div>
 
-<!-- ======================================================
-     FRETBOARD DIAGRAM PANEL (hidden for “Other Instruments”)
-     ====================================================== -->
 <div id="diagramCard" class="panel diagram hidden">
-  <div class="wrap" id="fretSvgWrap"></div>
+  <div class="wrap" id="fretSvgWrap" aria-hidden="true"></div>
 </div>
 
-<!-- ======================================================
-     FILTERS PANEL (Strings / Notes / Size / Scale)
-     ====================================================== -->
 <div id="filters" class="filters hidden">
   <div class="filters-top">
     <button id="resetBtn" type="button" title="Reset all filters to default">Reset All</button>
@@ -268,13 +139,8 @@
   </div>
 </div>
 
-<!-- ======================================================
-     OPTIONS PANEL (Mode/Instrument, Fret markers, Drone, Timer, SRS)
-     ====================================================== -->
 <div id="options" class="options hidden">
   <div class="options-grid">
-
-    <!-- Data Source (CSV import) -->
     <div class="opt-col">
       <h3>Data Source</h3>
       <div class="field">
@@ -298,7 +164,6 @@
       </div>
     </div>
 
-    <!-- Mode & Instrument -->
     <div class="opt-col">
       <h3>Mode & Instrument</h3>
       <div class="field">
@@ -344,7 +209,6 @@
           <label><input id="diagEnable" type="checkbox"> Show fretboard diagram</label>
         </div>
 
-        <!-- Fret markers (under-board markers; controlled by diagram toggle) -->
         <div id="markerControls" style="display:none;">
           <div class="field">
             <label>Fret markers</label>
@@ -365,24 +229,17 @@
       </div>
     </div>
 
-    <!-- Drone & Timer -->
     <div class="opt-col">
       <h3>Drone & Timer</h3>
-      <div class="field">
-        <label>Drone</label>
-        <label><input id="droneEnable" type="checkbox"> On Generate</label>
-      </div>
+      <div class="field"><label>Drone</label><label><input id="droneEnable" type="checkbox"> On Generate</label></div>
       <div class="field">
         <label>Drone Octave</label>
-        <select id="droneOct">
-          <option>2</option><option selected>3</option><option>4</option><option>5</option>
-        </select>
+        <select id="droneOct"><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
       </div>
       <div class="field">
         <label>Drone Volume</label>
         <input id="droneVol" type="range" min="0" max="1" step="0.01" value="0.25">
       </div>
-      <!-- NEW: Beep Volume (independent of drone volume) -->
       <div class="field">
         <label>Beep Volume</label>
         <input id="beepVol" type="range" min="0" max="0.3" step="0.005" value="0.05">
@@ -390,13 +247,9 @@
       <div class="timer">
         <label>Timer</label>
         <select id="timerDur">
-          <option value="4">4s</option>
-          <option value="15">15s</option>
-          <option value="30">30s</option>
-          <option value="60" selected>60s</option>
-          <option value="90">90s</option>
-          <option value="120">2m</option>
-          <option value="180">3m</option>
+          <option value="4">4s</option><option value="15">15s</option><option value="30">30s</option>
+          <option value="60" selected>60s</option><option value="90">90s</option>
+          <option value="120">2m</option><option value="180">3m</option>
         </select>
         <label><input id="timerAuto" type="checkbox"> Auto-start on Generate</label>
         <button id="timerBtn" type="button">Start</button>
@@ -404,50 +257,61 @@
       </div>
     </div>
 
-    <!-- SRS -->
-    <div class="opt-col">
-      <h3>Practice (SRS)</h3>
-      <div class="field">
-        <label>Mode</label>
-        <label><input id="srsEnable" type="checkbox"> SRS Mode</label>
-      </div>
-      <div class="muted">When SRS is on, Generate picks due scales first.</div>
-      <div class="field">
-        <label>Due Today</label>
-        <span id="dueCount">0</span>
-      </div>
-      <div id="srsControls" class="srs-ctrls" style="display:none;">
-        <button id="againBtn" type="button">Again</button>
-        <button id="hardBtn"  type="button">Hard</button>
-        <button id="easyBtn"  type="button">Easy</button>
-      </div>
+    <div class="field">
+      <label>Metronome</label>
+      <label><input id="metroEnable" type="checkbox"> Use bars/beats instead of seconds</label>
+    </div>
+    <div class="field">
+      <label>BPM</label>
+      <input id="metroBpm" type="number" min="20" max="300" value="120" style="width:90px">
+    </div>
+    <div class="field">
+      <label>Beats / Bar</label>
+      <select id="metroBeatsPerBar">
+        <option value="2">2</option><option value="3">3</option><option value="4" selected>4</option>
+        <option value="5">5</option><option value="7">7</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Bars / Prompt</label>
+      <select id="metroBarsPerPrompt">
+        <option value="1" selected>1</option><option value="2">2</option><option value="4">4</option><option value="8">8</option>
+      </select>
     </div>
 
+    <div class="opt-col">
+      <h3>Practice (SRS)</h3>
+      <div class="field"><label>Mode</label><label><input id="srsEnable" type="checkbox"> SRS Mode</label></div>
+      <div class="muted">When SRS is on, Generate picks due scales first.</div>
+      <div class="field"><label>Due Today</label><span id="dueCount">0</span></div>
+      <div id="srsControls" class="srs-ctrls" style="display:none;">
+        <button id="againBtn" type="button">Again</button>
+        <button id="hardBtn" type="button">Hard</button>
+        <button id="easyBtn" type="button">Easy</button>
+      </div>
+    </div>
   </div>
 </div>
-<!-- ==== Instructions Modal (hidden by default) ======================= -->
+
 <div id="helpModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
   <div class="sheet">
     <header>
       <h3 id="helpTitle">How to Use The Rolodex From Hades (Demo)</h3>
-      <button id="helpCloseBtn" type="button" title="Close">Close</button>
+      <button id="helpCloseBtn" type="button" title="Close" aria-label="Close help">Close</button>
     </header>
     <div class="content">
       <p>This short guide explains the basic workflow and what each control does.</p>
-
       <h4>Generate</h4>
       <ul>
         <li><b>Generate</b> selects a note and a scale from the active filters and prints it in the main panel.</li>
         <li>If <i>Show fretboard diagram</i> is on, the diagram updates too.</li>
         <li>Press the <b>spacebar</b> anywhere to generate again (unless you’re typing in a field).</li>
       </ul>
-
       <h4>Filters</h4>
       <ul>
         <li>Use the <b>Strings / Notes / Sizes / Scales</b> lists to control what’s eligible for selection.</li>
         <li>Each group has an <b>All/None</b> toggle. <i>Reset All</i> restores defaults.</li>
       </ul>
-
       <h4>Options → Mode & Instrument</h4>
       <ul>
         <li><b>Mode</b>: Guitar/Bass unlocks the fretboard; Other Instruments hides it.</li>
@@ -461,37 +325,29 @@
           </ul>
         </li>
       </ul>
-
       <h4>Options → Drone & Timer</h4>
       <ul>
         <li><b>Drone</b>: sine tone on the generated root (set octave/volume).</li>
         <li><b>Timer</b>: pick a duration, optionally auto-start on each generate.</li>
       </ul>
-
       <h4>Practice (SRS)</h4>
       <ul>
         <li>Optional spaced repetition: when enabled, due items get priority.</li>
         <li>Grade with <b>Again / Hard / Easy</b> to schedule next review.</li>
       </ul>
-
       <h4>2048 Pitch-Set CSV (Advanced)</h4>
       <ul>
         <li>In <b>Options → Data Source</b>, choose <b>Imported CSV</b> and click <b>Load 2048 CSV…</b>.</li>
         <li>CSV columns should include: <code>Scale ID</code>, <code>Size</code>, <code>Intervals</code>, <code>Name</code>.</li>
         <li>You can revert to the embedded Holdsworth subset anytime.</li>
       </ul>
-
       <p><i>Tip:</i> Nearly every setting is saved locally, so the app opens the way you left it.</p>
     </div>
   </div>
 </div>
-<!-- ================================================================== -->
+
 <script>
-/* =====================================================
-   DATA: embedded Holdsworth subset + base lists
-   - EMBEDDED_SCALES is the working dataset (mutable in-place
-     when you import CSV).
-   ===================================================== */
+/* ------------------------------ DATA ---------------------------------- */
 const EMBEDDED_SCALES = [
   {"id":"393","size":"5-note","name":"Pentatonic Major","intervals":"1-2-3-5-6"},
   {"id":"849","size":"6-note","name":"Messiaen Mode 1 (Whole Tone)","intervals":"1-2-3-#4-#5-b7"},
@@ -516,1180 +372,611 @@ const EMBEDDED_SCALES = [
   {"id":"2004","size":"10-note","name":"Messiaen Mode 7","intervals":"1-b2-nat2-b3-nat4-#4-5-#5-6-7"},
   {"id":"2048","size":"12-note","name":"Chromatic","intervals":"1-b2-nat2-b3-nat3-nat4-#4-nat5-#5-6-b7-nat7"}
 ];
-
-const BASE_STRINGS = ["6","5","4","3","2","1"];               // UI labels for string selection
-const BASE_NOTES   = ["A","A#/Bb","B","C","C#/Db","D","D#/Eb","E","F","F#/Gb","G","G#/Ab"];
+const BASE_STRINGS = ["6","5","4","3","2","1"];
+const BASE_NOTES = ["A","A#/Bb","B","C","C#/Db","D","D#/Eb","E","F","F#/Gb","G","G#/Ab"];
 const BASE_SIZES = [...new Set(EMBEDDED_SCALES.map(s=>s.size))].sort((a,b)=>{
-  // Sort by numeric size on the left (e.g., "7-note") then by text
   const A=parseInt((a.match(/^(\d+)/)||[])[1]||1e9,10);
   const B=parseInt((b.match(/^(\d+)/)||[])[1]||1e9,10);
   return A===B? a.localeCompare(b) : A-B;
 });
 
-/* =====================================================
-   UTILITIES
-   ===================================================== */
+/* --------------------------- UTILITIES -------------------------------- */
 const $ = id => document.getElementById(id);
-
-/* Convert ASCII accidentals to musical symbols for nicer UI */
 function toMusical(str){
-  if (!str) return str;
+  if(!str) return str;
   return String(str)
-    .replace(/([A-Ga-g])##/g, '$1𝄪').replace(/([A-Ga-g])bb/g, '$1𝄫')
-    .replace(/([A-Ga-g])#/g,  '$1♯').replace(/([A-Ga-g])b/g,  '$1♭')
-    .replace(/##(?=\d)/g, '𝄪').replace(/bb(?=\d)/g, '𝄫')
-    .replace(/#(?=\d)/g,  '♯').replace(/b(?=\d)/g,  '♭')
-    .replace(/\bnat\s*(\d)/gi, '♮$1');
+    .replace(/([A-Ga-g])##/g,'$1𝄪').replace(/([A-Ga-g])bb/g,'$1𝄫')
+    .replace(/([A-Ga-g])#/g,'$1♯').replace(/([A-Ga-g])b/g,'$1♭')
+    .replace(/##(?=\d)/g,'𝄪').replace(/bb(?=\d)/g,'𝄫')
+    .replace(/#(?=\d)/g,'♯').replace(/b(?=\d)/g,'♭')
+    .replace(/\bnat\s*(\d)/gi,'♮$1');
 }
-
-/* Map note names to pitch classes (0–11) and parse input safely */
-const PC = {C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
+const PC={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
 function parseNotePc(name){
   if(!name) return null;
-  let n = String(name).split('/')[0].trim().replace('♯','#').replace('♭','b').toUpperCase();
-  if (!/^[A-G](#|B)?$/.test(n)) n = n.charAt(0);
+  let n=String(name).split('/')[0].trim().replace('♯','#').replace('♭','b').toUpperCase();
+  if(!/^[A-G](#|B)?$/.test(n)) n=n.charAt(0);
   return PC[n] ?? null;
 }
 
-/* =====================================================
-   2048 PITCH-SET LOADER (CSV import)
-   - Adds window.injectPitchSets2048FromCSV / injectPitchSets2048
-   - Replaces EMBEDDED_SCALES in-place and rebuilds BASE_SIZES
-   ===================================================== */
+/* ------------------------ CSV IMPORT/EXPORT --------------------------- */
+const STORAGE_KEY='rolodex_state_v4';
+const SRS_KEY='rolodex_srs_v2';
+const CSV_KEY='rolodex_ps2048_csv';
+const CSV_FLAG='rolodex_ps_source';
+const EMBEDDED_SCALES_ORIG=EMBEDDED_SCALES.slice();
+
 (function(){
-  /* Small CSV parser (handles quoted fields, escaped quotes) */
   function ps_parseCSV(text){
-    const rows=[], row=[]; let cur="", inQ=false;
+    const rows=[],row=[]; let cur="",inQ=false;
     for(let i=0;i<text.length;i++){
-      const ch=text[i], nx=text[i+1];
-      if(inQ){
-        if(ch==='"' && nx==='"'){ cur+='"'; i++; }
-        else if(ch==='"'){ inQ=false; }
-        else { cur+=ch; }
-      } else {
-        if(ch==='"'){ inQ=true; }
-        else if(ch===','){ row.push(cur); cur=""; }
-        else if(ch==='\r'){ /* ignore */ }
-        else if(ch==='\n'){ row.push(cur); rows.push(row.slice()); row.length=0; cur=""; }
-        else { cur+=ch; }
-      }
+      const ch=text[i],nx=text[i+1];
+      if(inQ){ if(ch==='"'&&nx==='"'){cur+='"';i++;} else if(ch==='"'){inQ=false;} else {cur+=ch;} }
+      else { if(ch==='"'){inQ=true;} else if(ch===','){row.push(cur);cur="";} else if(ch==='\r'){} else if(ch==='\n'){row.push(cur);rows.push(row.slice());row.length=0;cur="";} else {cur+=ch;} }
     }
     row.push(cur); rows.push(row.slice());
-    // Trim trailing blank lines
     while(rows.length && rows[rows.length-1].every(c=>String(c).trim()==="")) rows.pop();
     return rows;
   }
-
-  /* Core: replace working dataset + rebuild dependent lists */
   function replaceEmbeddedScales(newArr){
-    EMBEDDED_SCALES.length = 0;
-    for(const o of newArr){ EMBEDDED_SCALES.push(o); }
-
-    const sizes = [...new Set(EMBEDDED_SCALES.map(s=>s.size))].sort((a,b)=>{
+    EMBEDDED_SCALES.length=0; for(const o of newArr) EMBEDDED_SCALES.push(o);
+    const sizes=[...new Set(EMBEDDED_SCALES.map(s=>s.size))].sort((a,b)=>{
       const A=parseInt((a.match(/^(\d+)/)||[])[1]||1e9,10);
       const B=parseInt((b.match(/^(\d+)/)||[])[1]||1e9,10);
-      return A===B? a.localeCompare(b) : A-B;
+      return A===B? a.localeCompare(b):A-B;
     });
-    BASE_SIZES.length = 0;
-    for(const s of sizes){ BASE_SIZES.push(s); }
-
-    // Reset selections to the new list and refresh filters/UI
-    state.selected.sizes  = new Set(BASE_SIZES);
-    state.selected.scales = new Set(EMBEDDED_SCALES.map(s=>s.id));
-    renderFilters();
-    saveStateThrottled && saveStateThrottled();
+    BASE_SIZES.length=0; sizes.forEach(s=>BASE_SIZES.push(s));
+    state.selected.sizes=new Set(BASE_SIZES);
+    state.selected.scales=new Set(EMBEDDED_SCALES.map(s=>s.id));
+    renderFilters(); saveStateThrottled && saveStateThrottled();
   }
-
-  /* Public helpers (callable from UI wiring) */
-  window.injectPitchSets2048FromCSV = function(csvText){
-    const rows = ps_parseCSV(csvText);
-    if(!rows.length){ console.warn("CSV was empty."); return; }
-
-    const hdr = rows[0].map(h=>String(h||"").trim().toLowerCase());
-    const idx = (name, fallback) => {
-      const i = hdr.indexOf(name); return i>=0? i : fallback;
-    };
-    const idCol   = idx("scale id", 0);
-    const sizeCol = idx("size", 1);
-    const intCol  = idx("intervals", 2);
-    const nameCol = idx("name", 3);
-
+  window.injectPitchSets2048FromCSV=function(csvText){
+    const rows=ps_parseCSV(csvText); if(!rows.length){console.warn("CSV empty");return;}
+    const hdr=rows[0].map(h=>String(h||"").trim().toLowerCase());
+    const idx=(name,fallback)=>{const i=hdr.indexOf(name);return i>=0?i:fallback;};
+    const idCol=idx("scale id",0), sizeCol=idx("size",1), intCol=idx("intervals",2), nameCol=idx("name",3);
     const out=[];
     for(let r=1;r<rows.length;r++){
-      const row = rows[r];
-      const id  = String(row[idCol]??"").trim();
-      const szv = String(row[sizeCol]??"").trim();
-      const iv  = String(row[intCol]??"").trim();
-      const nm  = String(row[nameCol]??"").trim() || "Nameless";
+      const row=rows[r];
+      const id=String(row[idCol]??"").trim();
+      const szv=String(row[sizeCol]??"").trim();
+      const iv=String(row[intCol]??"").trim();
+      const nm=String(row[nameCol]??"").trim() || "Nameless";
       if(!id || !iv) continue;
-
-      // Normalize size to "N-note" when possible
-      let sizeLabel = szv;
-      const n = parseInt(szv,10);
-      if(!isNaN(n)) sizeLabel = `${n}-note`;
-      else if(!/^\d+-note$/i.test(szv)) sizeLabel = szv || "unknown";
-
-      out.push({ id, size: sizeLabel, name: nm, intervals: iv });
+      let sizeLabel=szv; const n=parseInt(szv,10);
+      if(!isNaN(n)) sizeLabel=`${n}-note`; else if(!/^\d+-note$/i.test(szv)) sizeLabel=szv||"unknown";
+      out.push({id,size:sizeLabel,name:nm,intervals:iv});
     }
-    if(!out.length){ console.warn("No usable rows."); return; }
-
+    if(!out.length){console.warn("No usable rows.");return;}
     replaceEmbeddedScales(out);
-    console.log(`Replaced with ${out.length} pitch sets.`);
   };
-
-  window.injectPitchSets2048 = function(arr){
-    if(!Array.isArray(arr) || !arr.length){ console.warn("Bad array"); return; }
+  window.injectPitchSets2048=function(arr){
+    if(!Array.isArray(arr)||!arr.length){console.warn("Bad array");return;}
     replaceEmbeddedScales(arr);
-    console.log(`Replaced with ${arr.length} pitch sets.`);
   };
 })();
 
-/* =====================================================
-   RESPONSIVE TEXT FITTING (for single-line rows)
-   ===================================================== */
-function fitLines(){
-  const out = $("out");
-  const minSize = 12;
-  out.querySelectorAll('.line.fit').forEach(line=>{
-    line.style.fontSize = "";
-    const w = out.clientWidth - 6;
-    if (line.scrollWidth > w) {
-      const fs = parseFloat(getComputedStyle(line).fontSize) || parseFloat(getComputedStyle(out).fontSize) || 24;
-      const ratio = w / line.scrollWidth;
-      line.style.fontSize = Math.max(minSize, fs * ratio) + "px";
-    }
-  });
-}
-
-/* =====================================================
-   PERSISTENCE (state + SRS) and CSV source flags
-   ===================================================== */
-const STORAGE_KEY = 'rolodex_state_v4';
-const SRS_KEY = 'rolodex_srs_v2';
-
-/* CSV-related keys + original snapshot for easy restore */
-const CSV_KEY  = 'rolodex_ps2048_csv';
-const CSV_FLAG = 'rolodex_ps_source';          // 'csv' | 'holdsworth'
-const EMBEDDED_SCALES_ORIG = EMBEDDED_SCALES.slice();
-
-/* Snapshot state to JSON for localStorage */
+/* ----------------------- STATE & PERSISTENCE -------------------------- */
 function stateToJSON(s){
   return {
-    mode: s.mode,
-    selected: {
-      strings: Array.from(s.selected.strings),
-      notes:   Array.from(s.selected.notes),
-      sizes:   Array.from(s.selected.sizes),
-      scales:  Array.from(s.selected.scales)
+    mode:s.mode,
+    selected:{
+      strings:[...s.selected.strings],
+      notes:[...s.selected.notes],
+      sizes:[...s.selected.sizes],
+      scales:[...s.selected.scales]
     },
-    instrument: { count: s.instrument.count, tuning: s.instrument.tuning.slice() },
-    showFret: s.showFret,
-    maxFret: s.maxFret,
-    preferLow: s.preferLow,
-    diagEnable: s.diagEnable,
-    drone: { enabled:s.drone.enabled, octave:s.drone.octave, volume:s.drone.volume },
-    timer: { dur:s.timer.dur, auto:s.timer.auto, beepVol:s.timer.beepVol },
-    srs: { enabled:s.srs.enabled },
-
-    /* Diagram marker prefs */
-    markers: { enable: s.markers.enable, shape: s.markers.shape, nums: s.markers.nums }
+    instrument:{count:s.instrument.count,tuning:s.instrument.tuning.slice()},
+    showFret:s.showFret, maxFret:s.maxFret, preferLow:s.preferLow, diagEnable:s.diagEnable,
+    drone:{enabled:s.drone.enabled,octave:s.drone.octave,volume:s.drone.volume},
+    timer:{dur:s.timer.dur,auto:s.timer.auto,beepVol:s.timer.beepVol},
+    metronome:{enable:s.metronome.enable,bpm:s.metronome.bpm,bpb:s.metronome.bpb,bars:s.metronome.bars},
+    srs:{enabled:s.srs.enabled},
+    markers:{enable:s.markers.enable,shape:s.markers.shape,nums:s.markers.nums}
   };
 }
-
-/* Defensive Set construction */
-function safeSet(v, fallbackArr){
-  if (v instanceof Set) return new Set(v);
-  if (Array.isArray(v)) return new Set(v);
-  return new Set(fallbackArr);
-}
-
-/* Load persisted state (with safe fallbacks) */
+function safeSet(v,fallback){ if(v instanceof Set) return new Set(v); if(Array.isArray(v)) return new Set(v); return new Set(fallback); }
 function loadState(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return null;
-    const x = JSON.parse(raw);
-    if(!x || typeof x!=='object') return null;
-
-    const sizesFromData = [...new Set(EMBEDDED_SCALES.map(s=>s.size))];
-
+    const raw=localStorage.getItem(STORAGE_KEY); if(!raw) return null;
+    const x=JSON.parse(raw); if(!x||typeof x!=='object') return null;
+    const sizesFromData=[...new Set(EMBEDDED_SCALES.map(s=>s.size))];
     return {
-      mode: (x.mode==='other') ? 'other' : 'guitar',
-      selected: {
-        strings: safeSet(x.selected?.strings, BASE_STRINGS),
-        notes:   safeSet(x.selected?.notes,   BASE_NOTES),
-        sizes:   safeSet(x.selected?.sizes,   sizesFromData),
-        scales:  safeSet(x.selected?.scales,  EMBEDDED_SCALES.map(s=>s.id))
+      mode:(x.mode==='other')?'other':'guitar',
+      selected:{
+        strings:safeSet(x.selected?.strings,BASE_STRINGS),
+        notes:safeSet(x.selected?.notes,BASE_NOTES),
+        sizes:safeSet(x.selected?.sizes,sizesFromData),
+        scales:safeSet(x.selected?.scales,EMBEDDED_SCALES.map(s=>s.id))
       },
-      instrument: {
-        count: Math.max(1, Math.min(12, parseInt(x.instrument?.count||6,10))),
-        tuning: Array.isArray(x.instrument?.tuning) ? x.instrument.tuning.slice(0,12) : ['E','B','G','D','A','E']
+      instrument:{
+        count:Math.max(1,Math.min(12,parseInt(x.instrument?.count||6,10))),
+        tuning:Array.isArray(x.instrument?.tuning)?x.instrument.tuning.slice(0,12):['E','B','G','D','A','E']
       },
-      showFret: !!x.showFret,
-      maxFret: [12,15,21,24].includes(+x.maxFret) ? +x.maxFret : 15,
-      preferLow: !!x.preferLow,
-      diagEnable: !!x.diagEnable,
-      drone: {
-        enabled: !!(x.drone && x.drone.enabled),
-        octave:  [2,3,4,5].includes(+x.drone?.octave) ? +x.drone.octave : 3,
-        volume:  (typeof x.drone?.volume==='number') ? Math.max(0,Math.min(1,x.drone.volume)) : 0.25
-      },
-      timer: {
-        dur: [4,15,30,60,90,120,180].includes(+x.timer?.dur) ? +x.timer.dur : 60,
-        auto: !!x.timer?.auto,
-        beepVol: (typeof x.timer?.beepVol === 'number')
-          ? Math.max(0, Math.min(0.8, x.timer.beepVol))
-          : 0.05
-      },
-      srs: { enabled: !!x.srs?.enabled, map: {} },
-
-      /* Diagram markers */
-      markers: {
-        enable: x.markers?.enable !== false,
-        shape: (x.markers?.shape === 'square') ? 'square' : 'dot',
-        nums: !!x.markers?.nums
-      }
+      showFret:!!x.showFret, maxFret:[12,15,21,24].includes(+x.maxFret)?+x.maxFret:15, preferLow:!!x.preferLow,
+      diagEnable:!!x.diagEnable,
+      drone:{enabled:!!(x.drone&&x.drone.enabled),octave:[2,3,4,5].includes(+x.drone?.octave)?+x.drone.octave:3,volume:(typeof x.drone?.volume==='number')?Math.max(0,Math.min(1,x.drone.volume)):0.25},
+      timer:{dur:[4,15,30,60,90,120,180].includes(+x.timer?.dur)?+x.timer.dur:60,auto:!!x.timer?.auto,beepVol:(typeof x.timer?.beepVol==='number')?Math.max(0,Math.min(0.8,x.timer.beepVol)):0.05},
+      metronome:{enable:!!x.metronome?.enable,bpm:Math.max(20,Math.min(300,parseInt(x.metronome?.bpm ?? 120,10))),bpb:[2,3,4,5,7].includes(+x.metronome?.bpb)?+x.metronome.bpb:4,bars:[1,2,4,8].includes(+x.metronome?.bars)?+x.metronome.bars:1},
+      srs:{enabled:!!x.srs?.enabled,map:{}},
+      markers:{enable:x.markers?.enable!==false,shape:(x.markers?.shape==='square')?'square':'dot',nums:!!x.markers?.nums}
     };
-  }catch{ return null; }
+  }catch{return null;}
 }
-
-/* Throttled save to localStorage */
 function saveStateThrottled(){
   clearTimeout(saveStateThrottled._t);
-  saveStateThrottled._t = setTimeout(()=>{
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToJSON(state))); } catch {}
-  }, 120);
+  saveStateThrottled._t=setTimeout(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(stateToJSON(state)));}catch{}},120);
 }
-
-/* =====================================================
-   APP STATE (defaults when no saved state)
-   ===================================================== */
-let state = loadState() || {
-  mode: 'guitar',
-  selected: {
-    strings: new Set(BASE_STRINGS),
-    notes:   new Set(BASE_NOTES),
-    sizes:   new Set(BASE_SIZES),
-    scales:  new Set(EMBEDDED_SCALES.map(s=>s.id))
-  },
-  instrument: { count:6, tuning:['E','B','G','D','A','E'] },
-  showFret: false,
-  maxFret: 15,
-  preferLow: true,
-  diagEnable: false,
-  drone: { enabled:false, octave:3, volume:0.25 },
-  timer: { dur:60, auto:false, beepVol:0.05 },
-  srs: { enabled:false, map:{} },
-  markers: { enable:true, shape:'dot', nums:false }
+let state=loadState() || {
+  mode:'guitar',
+  selected:{strings:new Set(BASE_STRINGS),notes:new Set(BASE_NOTES),sizes:new Set(BASE_SIZES),scales:new Set(EMBEDDED_SCALES.map(s=>s.id))},
+  instrument:{count:6,tuning:['E','B','G','D','A','E']},
+  showFret:false,maxFret:15,preferLow:true,diagEnable:false,
+  drone:{enabled:false,octave:3,volume:0.25},
+  timer:{dur:60,auto:false,beepVol:0.05},
+  metronome:{enable:false,bpm:120,bpb:4,bars:1},
+  srs:{enabled:false,map:{}},
+  markers:{enable:true,shape:'dot',nums:false}
 };
 
-/* =====================================================
-   FILTERS UI RENDER + BINDING
-   ===================================================== */
+/* ------------------------ FILTERS RENDERING --------------------------- */
 function groupTotals(group){
-  if (group==='strings') return BASE_STRINGS.length;
-  if (group==='notes')   return BASE_NOTES.length;
-  if (group==='sizes')   return BASE_SIZES.length;
-  if (group==='scales')  return EMBEDDED_SCALES.length;
+  if(group==='strings') return BASE_STRINGS.length;
+  if(group==='notes') return BASE_NOTES.length;
+  if(group==='sizes') return BASE_SIZES.length;
+  if(group==='scales') return EMBEDDED_SCALES.length;
   return 0;
 }
-function isAllSelected(group){ return state.selected[group].size === groupTotals(group); }
-
+function isAllSelected(group){ return state.selected[group].size===groupTotals(group); }
 function updateGroupToggleLabels(){
   document.querySelectorAll('.group-toggle').forEach(b=>{
-    const g=b.dataset.group; b.textContent = isAllSelected(g)?'None':'All';
+    const g=b.dataset.group; b.textContent=isAllSelected(g)?'None':'All';
   });
 }
-
 function renderFilters(){
-  $("stringsList").innerHTML = BASE_STRINGS.map(v=>`
-    <label><input type="checkbox" value="${v}" ${state.selected.strings.has(v)?"checked":""}><span>${v}</span></label>
-  `).join("");
-  $("notesList").innerHTML = BASE_NOTES.map(v=>`
-    <label><input type="checkbox" value="${v}" ${state.selected.notes.has(v)?"checked":""}><span>${toMusical(v)}</span></label>
-  `).join("");
-  $("sizesList").innerHTML = BASE_SIZES.map(v=>`
-    <label class="pill ${state.selected.sizes.has(v)?"active":""}">
-      <input type="checkbox" value="${v}" ${state.selected.sizes.has(v)?"checked":""}><span>${v}</span>
-    </label>
-  `).join("");
-  $("scalesList").innerHTML = EMBEDDED_SCALES.map(s=>`
-    <label><input type="checkbox" value="${s.id}" ${state.selected.scales.has(s.id)?"checked":""}><span>${toMusical(s.name)}</span><span class="muted">ID: ${s.id}</span></label>
-  `).join("");
+  $("stringsList").innerHTML = BASE_STRINGS.map(v=>`<label><input type="checkbox" value="${v}" ${state.selected.strings.has(v)?"checked":""}><span>${v}</span></label>`).join("");
+  $("notesList").innerHTML = BASE_NOTES.map(v=>`<label><input type="checkbox" value="${v}" ${state.selected.notes.has(v)?"checked":""}><span>${toMusical(v)}</span></label>`).join("");
+  $("sizesList").innerHTML = BASE_SIZES.map(v=>`<label class="pill ${state.selected.sizes.has(v)?"active":""}"><input type="checkbox" value="${v}" ${state.selected.sizes.has(v)?"checked":""}><span>${v}</span></label>`).join("");
+  $("scalesList").innerHTML = EMBEDDED_SCALES.map(s=>`<label><input type="checkbox" value="${s.id}" ${state.selected.scales.has(s.id)?"checked":""}><span>${toMusical(s.name)}</span><span class="muted">ID: ${s.id}</span></label>`).join("");
   $("stringsCol").style.display = state.mode==='guitar' ? '' : 'none';
   updateGroupToggleLabels();
 }
-
-/* Checkbox changes (delegated) */
 document.addEventListener("change",(e)=>{
-  const t=e.target;
-  if(!(t instanceof HTMLInputElement)) return;
-
-  if(t.closest("#stringsList")){
-    t.checked? state.selected.strings.add(t.value) : state.selected.strings.delete(t.value);
-    saveStateThrottled(); updateGroupToggleLabels();
-  }
-  if(t.closest("#notesList")){
-    t.checked? state.selected.notes.add(t.value) : state.selected.notes.delete(t.value);
-    saveStateThrottled(); updateGroupToggleLabels();
-  }
-  if(t.closest("#sizesList")){
-    const pill=t.closest(".pill");
-    t.checked? (state.selected.sizes.add(t.value), pill.classList.add("active"))
-             : (state.selected.sizes.delete(t.value), pill.classList.remove("active"));
-    saveStateThrottled(); updateGroupToggleLabels();
-  }
-  if(t.closest("#scalesList")){
-    t.checked? state.selected.scales.add(t.value) : state.selected.scales.delete(t.value);
-    saveStateThrottled(); updateGroupToggleLabels();
-  }
+  const t=e.target; if(!(t instanceof HTMLInputElement)) return;
+  if(t.closest("#stringsList")){ t.checked?state.selected.strings.add(t.value):state.selected.strings.delete(t.value); saveStateThrottled(); updateGroupToggleLabels(); }
+  if(t.closest("#notesList")){ t.checked?state.selected.notes.add(t.value):state.selected.notes.delete(t.value); saveStateThrottled(); updateGroupToggleLabels(); }
+  if(t.closest("#sizesList")){ const pill=t.closest(".pill"); t.checked?(state.selected.sizes.add(t.value),pill.classList.add("active")):(state.selected.sizes.delete(t.value),pill.classList.remove("active")); saveStateThrottled(); updateGroupToggleLabels(); }
+  if(t.closest("#scalesList")){ t.checked?state.selected.scales.add(t.value):state.selected.scales.delete(t.value); saveStateThrottled(); updateGroupToggleLabels(); }
 });
-
-/* Group “All/None” toggles */
 document.querySelectorAll(".group-toggle").forEach(btn=>{
   btn.addEventListener("click",()=>{
-    const g=btn.dataset.group, set=state.selected[g];
-    const makeAll = set.size !== groupTotals(g);
+    const g=btn.dataset.group,set=state.selected[g]; const makeAll=set.size!==groupTotals(g);
     set.clear();
     if(makeAll){
       if(g==='strings') BASE_STRINGS.forEach(v=>set.add(v));
-      if(g==='notes')   BASE_NOTES.forEach(v=>set.add(v));
-      if(g==='sizes')   BASE_SIZES.forEach(v=>set.add(v));
-      if(g==='scales')  EMBEDDED_SCALES.forEach(s=>set.add(s.id));
+      if(g==='notes') BASE_NOTES.forEach(v=>set.add(v));
+      if(g==='sizes') BASE_SIZES.forEach(v=>set.add(v));
+      if(g==='scales') EMBEDDED_SCALES.forEach(s=>set.add(s.id));
     }
-    saveStateThrottled();
-    renderFilters();
+    saveStateThrottled(); renderFilters();
   });
 });
-
-/* Reset to defaults */
-$("resetBtn").addEventListener("click", ()=>{
-  state.selected = {
-    strings: new Set(BASE_STRINGS),
-    notes:   new Set(BASE_NOTES),
-    sizes:   new Set(BASE_SIZES),
-    scales:  new Set(EMBEDDED_SCALES.map(s=>s.id))
-  };
-  saveStateThrottled();
-  renderFilters();
+$("resetBtn").addEventListener("click",()=>{
+  state.selected={strings:new Set(BASE_STRINGS),notes:new Set(BASE_NOTES),sizes:new Set(BASE_SIZES),scales:new Set(EMBEDDED_SCALES.map(s=>s.id))};
+  saveStateThrottled(); renderFilters();
 });
+/* Panel toggles (with delegated fallback for Filters) */
+const filtersBtnEl=$("filtersBtn");
+if(filtersBtnEl){filtersBtnEl.addEventListener("click",(e)=>{e.preventDefault();e.stopPropagation();$("filters").classList.toggle("hidden");});}
+document.addEventListener("click",(e)=>{const btn=e.target.closest && e.target.closest("#filtersBtn"); if(!btn) return; e.preventDefault(); e.stopPropagation(); $("filters").classList.toggle("hidden");},{capture:true});
+$("optionsBtn").addEventListener("click",(e)=>{e.preventDefault();e.stopPropagation();$("options").classList.toggle("hidden");});
 
-/* Filters panel toggle (with a delegated fallback for resilience) */
-const filtersBtnEl = $("filtersBtn");
-if (filtersBtnEl) {
-  filtersBtnEl.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const panel = $("filters");
-    if (panel) panel.classList.toggle("hidden");
-  });
-}
-document.addEventListener("click", (e) => {
-  const btn = e.target.closest && e.target.closest("#filtersBtn");
-  if (!btn) return;
-  e.preventDefault();
-  e.stopPropagation();
-  const panel = $("filters");
-  if (panel) panel.classList.toggle("hidden");
-}, { capture: true });
+/* ---------------------- HELP MODAL WIRING ----------------------------- */
+const helpBtn=$("instructionsBtn"), helpModal=$("helpModal"), helpCloseBtn=$("helpCloseBtn");
+function openHelp(){ if(!helpModal) return; helpModal.classList.add("open"); helpCloseBtn && helpCloseBtn.focus(); }
+function closeHelp(){ if(!helpModal) return; helpModal.classList.remove("open"); }
+helpBtn && helpBtn.addEventListener("click",(e)=>{e.preventDefault(); e.stopPropagation(); openHelp();});
+helpCloseBtn && helpCloseBtn.addEventListener("click",(e)=>{e.preventDefault(); e.stopPropagation(); closeHelp();});
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && helpModal && helpModal.classList.contains("open")) closeHelp();});
+helpModal && helpModal.addEventListener("click",(e)=>{ if(e.target===helpModal) closeHelp(); });
 
-/* Options panel toggle */
-$("optionsBtn").addEventListener("click", (e)=> {
-  e.preventDefault(); e.stopPropagation();
-  $("options").classList.toggle("hidden");
-});
-    /* ==== Instructions modal wiring ===================================== */
-    const helpBtn = $("helpBtn");
-    const helpModal = $("helpModal");
-    const helpCloseBtn = $("helpCloseBtn");
-
-    function openHelp(){
-      if (!helpModal) return;
-      helpModal.classList.add("open");
-      // focus the close button for accessibility
-      helpCloseBtn && helpCloseBtn.focus();
-    }
-
-    function closeHelp(){
-      if (!helpModal) return;
-      helpModal.classList.remove("open");
-    }
-
-    helpBtn && helpBtn.addEventListener("click", (e)=>{
-      e.preventDefault(); e.stopPropagation();
-      openHelp();
-    });
-
-    helpCloseBtn && helpCloseBtn.addEventListener("click", (e)=>{
-      e.preventDefault(); e.stopPropagation();
-      closeHelp();
-    });
-
-    // close on Escape
-    document.addEventListener("keydown", (e)=>{
-      if (e.key === "Escape" && helpModal && helpModal.classList.contains("open")) {
-        closeHelp();
-      }
-    });
-
-    // click outside the sheet to close
-    helpModal && helpModal.addEventListener("click", (e)=>{
-      if (e.target === helpModal) closeHelp();
-    });
-    /* ==================================================================== */
-/* =====================================================
-   OPTIONS & INSTRUMENT CONTROLS
-   ===================================================== */
+/* ------------------- OPTIONS / INSTRUMENT CONTROLS -------------------- */
 document.querySelectorAll('input[name="mode"]').forEach(r=>{
   if(r.value===state.mode) r.checked=true;
-  r.addEventListener("change", ()=>{
-    state.mode = document.querySelector('input[name="mode"]:checked').value;
-    $("instPanel").style.display = state.mode==='guitar' ? '' : 'none';
-    saveStateThrottled();
-    renderFilters();
-    updateDiagramVisibility();
+  r.addEventListener("change",()=>{
+    state.mode=document.querySelector('input[name="mode"]:checked').value;
+    $("instPanel").style.display=state.mode==='guitar'?'':'none';
+    saveStateThrottled(); renderFilters(); updateDiagramVisibility();
   });
 });
-$("instPanel").style.display = state.mode==='guitar' ? '' : 'none';
+$("instPanel").style.display=state.mode==='guitar'?'':'none';
 
-/* Preset tunings for convenience */
-const PRESETS = {
-  gtr6: {count:6, tuning:['E','B','G','D','A','E']},
-  bass4:{count:4, tuning:['G','D','A','E']},
-  gtr7: {count:7, tuning:['E','B','G','D','A','E','B']},
-  gtr8: {count:8, tuning:['E','B','G','D','A','E','B','F#']}
-};
+const PRESETS={ gtr6:{count:6,tuning:['E','B','G','D','A','E']}, bass4:{count:4,tuning:['G','D','A','E']}, gtr7:{count:7,tuning:['E','B','G','D','A','E','B']}, gtr8:{count:8,tuning:['E','B','G','D','A','E','B','F#']} };
 
 function renderTuningGrid(){
-  const n = state.instrument.count;
-  const grid = $("tuningGrid"); grid.innerHTML='';
+  const n=state.instrument.count; const grid=$("tuningGrid"); grid.innerHTML='';
   for(let i=1;i<=n;i++){
-    const row = document.createElement('div'); row.className='tg-row';
-    const lab = document.createElement('label'); lab.textContent = `String ${i}`;
-    const inp = document.createElement('input'); inp.className='note-input'; inp.type='text';
-    inp.value = state.instrument.tuning[i-1] || '';
-    inp.placeholder = 'E, F#, Bb...';
-    inp.addEventListener('input', ()=> { state.instrument.tuning[i-1] = inp.value.trim(); saveStateThrottled(); });
-    row.appendChild(lab); row.appendChild(inp);
-    grid.appendChild(row);
+    const row=document.createElement('div'); row.className='tg-row';
+    const lab=document.createElement('label'); lab.textContent=`String ${i}`;
+    const inp=document.createElement('input'); inp.className='note-input'; inp.type='text';
+    inp.value=state.instrument.tuning[i-1]||''; inp.placeholder='E, F#, Bb...';
+    inp.addEventListener('input',()=>{state.instrument.tuning[i-1]=inp.value.trim(); saveStateThrottled();});
+    row.append(lab,inp); grid.append(row);
   }
 }
-
-/* Preset selector */
-$("presetSel").addEventListener("change", ()=>{
-  const v = $("presetSel").value;
-  if (v==='custom') return;
-  const p = PRESETS[v];
-  state.instrument.count = p.count;
-  state.instrument.tuning = p.tuning.slice();
-  $("numStrings").value = p.count;
+$("presetSel").addEventListener("change",()=>{
+  const v=$("presetSel").value; if(v==='custom') return; const p=PRESETS[v];
+  state.instrument.count=p.count; state.instrument.tuning=p.tuning.slice(); $("numStrings").value=p.count;
   renderTuningGrid(); saveStateThrottled();
 });
-$("numStrings").value = state.instrument.count;
-renderTuningGrid();
-
-/* Manual string-count change */
-$("numStrings").addEventListener("change", ()=>{
-  const val = Math.max(1, Math.min(12, parseInt($("numStrings").value||'6',10)));
-  state.instrument.count = val;
-  if(state.instrument.tuning.length < val){ while(state.instrument.tuning.length < val) state.instrument.tuning.push(''); }
-  else { state.instrument.tuning.length = val; }
-  $("presetSel").value = 'custom';
-  renderTuningGrid(); saveStateThrottled();
+$("numStrings").value=state.instrument.count; renderTuningGrid();
+$("numStrings").addEventListener("change",()=>{
+  const val=Math.max(1,Math.min(12,parseInt($("numStrings").value||'6',10)));
+  state.instrument.count=val;
+  if(state.instrument.tuning.length<val){ while(state.instrument.tuning.length<val) state.instrument.tuning.push(''); }
+  else{ state.instrument.tuning.length=val; }
+  $("presetSel").value='custom'; renderTuningGrid(); saveStateThrottled();
 });
+$("showFret").checked=state.showFret; $("showFret").addEventListener("change",()=>{state.showFret=$("showFret").checked; saveStateThrottled();});
+$("maxFret").value=String(state.maxFret); $("maxFret").addEventListener("change",()=>{state.maxFret=parseInt($("maxFret").value,10); saveStateThrottled();});
+$("preferLow").checked=state.preferLow; $("preferLow").addEventListener("change",()=>{state.preferLow=$("preferLow").checked; saveStateThrottled();});
+$("diagEnable").checked=state.diagEnable;
+$("diagEnable").addEventListener("change",()=>{state.diagEnable=$("diagEnable").checked; $("markerControls").style.display=state.diagEnable?'':'none'; saveStateThrottled(); updateDiagramVisibility();});
+$("markerControls").style.display=state.diagEnable?'':'none';
+$("markersEnable").checked=state.markers.enable; $("markerShape").value=state.markers.shape; $("markerNums").checked=state.markers.nums;
+$("markersEnable").addEventListener("change",()=>{state.markers.enable=$("markersEnable").checked; saveStateThrottled();});
+$("markerShape").addEventListener("change",()=>{state.markers.shape=$("markerShape").value; saveStateThrottled();});
+$("markerNums").addEventListener("change",()=>{state.markers.nms=$("markerNums").checked; state.markers.nums=$("markerNums").checked; saveStateThrottled();});
 
-/* Misc options toggles */
-$("showFret").checked = state.showFret;
-$("showFret").addEventListener("change", ()=> { state.showFret = $("showFret").checked; saveStateThrottled(); });
-$("maxFret").value = String(state.maxFret);
-$("maxFret").addEventListener("change", ()=> { state.maxFret = parseInt($("maxFret").value,10); saveStateThrottled(); });
-$("preferLow").checked = state.preferLow;
-$("preferLow").addEventListener("change", ()=> { state.preferLow = $("preferLow").checked; saveStateThrottled(); });
-
-/* Diagram & marker controls visibility */
-$("diagEnable").checked = state.diagEnable;
-$("diagEnable").addEventListener("change", ()=> {
-  state.diagEnable = $("diagEnable").checked;
-  $("markerControls").style.display = state.diagEnable ? '' : 'none';
-  saveStateThrottled(); updateDiagramVisibility();
-});
-
-/* Marker controls binding */
-$("markerControls").style.display = state.diagEnable ? '' : 'none';
-$("markersEnable").checked = state.markers.enable;
-$("markerShape").value = state.markers.shape;
-$("markerNums").checked  = state.markers.nums;
-$("markersEnable").addEventListener("change", ()=>{ state.markers.enable = $("markersEnable").checked; saveStateThrottled(); });
-$("markerShape").addEventListener("change", ()=>{ state.markers.shape  = $("markerShape").value;   saveStateThrottled(); });
-$("markerNums").addEventListener("change",  ()=>{ state.markers.nums   = $("markerNums").checked;  saveStateThrottled(); });
-
-/* =====================================================
-   CSV DATA SOURCE WIRING
-   - UI buttons/radios + localStorage hydration
-   ===================================================== */
+/* -------------------------- DATA SOURCE UI ---------------------------- */
 function _replaceScalesArray(arr){
-  // Internal helper to mirror the closure’s replace logic
-  EMBEDDED_SCALES.length = 0;
-  for (const o of arr) EMBEDDED_SCALES.push(o);
-
-  const sizes = [...new Set(EMBEDDED_SCALES.map(s=>s.size))].sort((a,b)=>{
-    const A=parseInt((a.match(/^(\d+)/)||[])[1]||1e9,10);
-    const B=parseInt((b.match(/^(\d+)/)||[])[1]||1e9,10);
-    return A===B? a.localeCompare(b) : A-B;
-  });
-  BASE_SIZES.length = 0;
-  sizes.forEach(s=>BASE_SIZES.push(s));
-
-  state.selected.sizes  = new Set(BASE_SIZES);
-  state.selected.scales = new Set(EMBEDDED_SCALES.map(s=>s.id));
-
-  renderFilters();
-  saveStateThrottled && saveStateThrottled();
+  EMBEDDED_SCALES.length=0; for(const o of arr) EMBEDDED_SCALES.push(o);
+  const sizes=[...new Set(EMBEDDED_SCALES.map(s=>s.size))].sort((a,b)=>{const A=parseInt((a.match(/^(\d+)/)||[])[1]||1e9,10); const B=parseInt((b.match(/^(\d+)/)||[])[1]||1e9,10); return A===B? a.localeCompare(b):A-B;});
+  BASE_SIZES.length=0; sizes.forEach(s=>BASE_SIZES.push(s));
+  state.selected.sizes=new Set(BASE_SIZES); state.selected.scales=new Set(EMBEDDED_SCALES.map(s=>s.id));
+  renderFilters(); saveStateThrottled && saveStateThrottled();
 }
-
-/* Restore embedded list */
-function restoreEmbedded(){
-  const copy = EMBEDDED_SCALES_ORIG.map(x=>({ ...x }));
-  _replaceScalesArray(copy);
-}
-
-/* Label helper */
-function setDataStatus(msg){
-  const el = document.getElementById('dataStatus');
-  if (el) el.textContent = msg;
-}
-
-/* On load: set active source + hydrate CSV if previously chosen */
+function restoreEmbedded(){ const copy=EMBEDDED_SCALES_ORIG.map(x=>({...x})); _replaceScalesArray(copy); }
+function setDataStatus(msg){ const el=$("dataStatus"); if(el) el.textContent=msg; }
+/* hydrate on load */
 (function initDataSource(){
-  const src = localStorage.getItem(CSV_FLAG) || 'holdsworth';
-  const radio = document.querySelector(`input[name="datasrc"][value="${src}"]`);
-  if (radio) radio.checked = true;
-
-  if (src === 'csv') {
-    const csv = localStorage.getItem(CSV_KEY);
-    if (csv && typeof window.injectPitchSets2048FromCSV === 'function') {
-      window.injectPitchSets2048FromCSV(csv);
-      setDataStatus('Imported CSV active');
-    } else {
-      localStorage.setItem(CSV_FLAG, 'holdsworth');
-      const r = document.querySelector('input[name="datasrc"][value="holdsworth"]');
-      if (r) r.checked = true;
-      setDataStatus('Holdsworth subset active');
-    }
-  } else {
-    setDataStatus('Holdsworth subset active');
-  }
+  const src=localStorage.getItem(CSV_FLAG)||'holdsworth';
+  const radio=document.querySelector(`input[name="datasrc"][value="${src}"]`); if(radio) radio.checked=true;
+  if(src==='csv'){
+    const csv=localStorage.getItem(CSV_KEY);
+    if(csv && typeof window.injectPitchSets2048FromCSV==='function'){ window.injectPitchSets2048FromCSV(csv); setDataStatus('Imported CSV active'); }
+    else{ localStorage.setItem(CSV_FLAG,'holdsworth'); const r=document.querySelector('input[name="datasrc"][value="holdsworth"]'); if(r) r.checked=true; setDataStatus('Holdsworth subset active'); }
+  } else { setDataStatus('Holdsworth subset active'); }
 })();
-
-/* Wire buttons + radio group */
 (function wireCsvUi(){
-  const csvFileEl    = document.getElementById('csvFile');
-  const csvLoadBtn   = document.getElementById('csvLoadBtn');
-  const csvClearBtn  = document.getElementById('csvClearBtn');
-  const csvExportBtn = document.getElementById('csvExportBtn');
-
-  // Source radios
+  const csvFileEl=$("csvFile"), csvLoadBtn=$("csvLoadBtn"), csvClearBtn=$("csvClearBtn"), csvExportBtn=$("csvExportBtn");
   document.querySelectorAll('input[name="datasrc"]').forEach(r=>{
-    r.addEventListener('change', ()=>{
-      const val = document.querySelector('input[name="datasrc"]:checked')?.value || 'holdsworth';
-      if (val === 'csv') {
-        const cached = localStorage.getItem(CSV_KEY);
-        if (cached) {
-          window.injectPitchSets2048FromCSV && window.injectPitchSets2048FromCSV(cached);
-          localStorage.setItem(CSV_FLAG, 'csv');
-          setDataStatus('Imported CSV active');
-        } else if (csvLoadBtn) {
-          csvLoadBtn.click(); // prompt to pick a file
-        }
-      } else {
-        restoreEmbedded();
-        localStorage.setItem(CSV_FLAG, 'holdsworth');
-        setDataStatus('Holdsworth subset active');
-      }
+    r.addEventListener('change',()=>{
+      const val=document.querySelector('input[name="datasrc"]:checked')?.value || 'holdsworth';
+      if(val==='csv'){
+        const cached=localStorage.getItem(CSV_KEY);
+        if(cached){ window.injectPitchSets2048FromCSV && window.injectPitchSets2048FromCSV(cached); localStorage.setItem(CSV_FLAG,'csv'); setDataStatus('Imported CSV active'); }
+        else if(csvLoadBtn){ csvLoadBtn.click(); }
+      } else { restoreEmbedded(); localStorage.setItem(CSV_FLAG,'holdsworth'); setDataStatus('Holdsworth subset active'); }
     });
   });
-
-  // Load button -> file input
-  if (csvLoadBtn && csvFileEl) {
-    csvLoadBtn.addEventListener('click', ()=> csvFileEl.click());
-    csvFileEl.addEventListener('change', ()=>{
-      const file = csvFileEl.files && csvFileEl.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e)=>{
-        const text = String(e.target.result || '');
-        if (typeof window.injectPitchSets2048FromCSV === 'function') {
+  if(csvLoadBtn && csvFileEl){
+    csvLoadBtn.addEventListener('click',()=>csvFileEl.click());
+    csvFileEl.addEventListener('change',()=>{
+      const file=csvFileEl.files && csvFileEl.files[0]; if(!file) return;
+      const reader=new FileReader();
+      reader.onload=(e)=>{
+        const text=String(e.target.result||'');
+        if(typeof window.injectPitchSets2048FromCSV==='function'){
           window.injectPitchSets2048FromCSV(text);
-          localStorage.setItem(CSV_KEY, text);
-          localStorage.setItem(CSV_FLAG, 'csv');
-          const csvRadio = document.querySelector('input[name="datasrc"][value="csv"]');
-          if (csvRadio) csvRadio.checked = true;
+          localStorage.setItem(CSV_KEY,text); localStorage.setItem(CSV_FLAG,'csv');
+          const csvRadio=document.querySelector('input[name="datasrc"][value="csv"]'); if(csvRadio) csvRadio.checked=true;
           setDataStatus('Imported CSV active');
-        } else {
-          console.warn('injectPitchSets2048FromCSV not found.');
-        }
+        } else { console.warn('injectPitchSets2048FromCSV not found.'); }
       };
       reader.readAsText(file);
     });
   }
-
-  // Clear imported dataset
-  if (csvClearBtn) {
-    csvClearBtn.addEventListener('click', ()=>{
-      localStorage.removeItem(CSV_KEY);
-      localStorage.setItem(CSV_FLAG, 'holdsworth');
-      restoreEmbedded();
-      const r = document.querySelector('input[name="datasrc"][value="holdsworth"]');
-      if (r) r.checked = true;
-      setDataStatus('Holdsworth subset active');
+  if(csvClearBtn){
+    csvClearBtn.addEventListener('click',()=>{
+      localStorage.removeItem(CSV_KEY); localStorage.setItem(CSV_FLAG,'holdsworth');
+      restoreEmbedded(); const r=document.querySelector('input[name="datasrc"][value="holdsworth"]'); if(r) r.checked=true; setDataStatus('Holdsworth subset active');
     });
   }
-
-  // Export currently active dataset (JSON)
-  if (csvExportBtn) {
-    csvExportBtn.addEventListener('click', ()=>{
-      try {
-        const blob = new Blob([JSON.stringify(EMBEDDED_SCALES, null, 2)], {type:'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'current_scales.json';
-        document.body.appendChild(a); a.click(); a.remove();
-        URL.revokeObjectURL(url);
-      } catch (e) {
-        console.warn('Export failed', e);
-      }
+  if(csvExportBtn){
+    csvExportBtn.addEventListener('click',()=>{
+      try{
+        const blob=new Blob([JSON.stringify(EMBEDDED_SCALES,null,2)],{type:'application/json'});
+        const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='current_scales.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      }catch(e){console.warn('Export failed',e);}
     });
   }
 })();
 
-/* =====================================================
-   DRONE (Audio) & TIMER
-   ===================================================== */
-let audio = { ctx:null, gain:null, osc:null };
+/* ------------------------- AUDIO & TIMER ------------------------------ */
+let audio={ctx:null,gain:null,osc:null};
 function ensureAudio(){
-  // If missing or closed, (re)create
-  if (!audio.ctx || audio.ctx.state === 'closed') {
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const gain = ctx.createGain();
-    gain.gain.value = state.drone.volume;
-    gain.connect(ctx.destination);
-    audio.ctx = ctx;
-    audio.gain = gain;
+  if(!audio.ctx || audio.ctx.state==='closed'){
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const gain=ctx.createGain(); gain.gain.value=state.drone.volume; gain.connect(ctx.destination);
+    audio.ctx=ctx; audio.gain=gain;
   }
 }
-    // --- Safari/macOS audio unlock (one-time, user-gesture based) ---
-    function unlockAudioOnce(){
-      ensureAudio();
-      // Resume if Safari left it suspended
-      if (audio.ctx && audio.ctx.state === 'suspended') {
-        audio.ctx.resume().catch(()=>{});
-      }
-      // Extra resilience: resume on focus/visibility return (Safari sometimes suspends)
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && audio.ctx && audio.ctx.state === 'suspended') {
-          audio.ctx.resume().catch(()=>{});
-        }
-      });
-      window.addEventListener('focus', () => {
-        if (audio.ctx && audio.ctx.state === 'suspended') {
-          audio.ctx.resume().catch(()=>{});
-        }
-      });
-      // Back/forward cache restore (bfcache)
-      window.addEventListener('pageshow', (e) => {
-        if (audio.ctx && audio.ctx.state === 'suspended') {
-          audio.ctx.resume().catch(()=>{});
-        }
-      });
-      if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
-        navigator.mediaDevices.addEventListener('devicechange', () => {
-          if (audio.ctx && audio.ctx.state === 'suspended') {
-            audio.ctx.resume().catch(()=>{});
-          }
-        });
-      }
-      // Play a 1-frame silent buffer to fully unlock on WebKit
-      try {
-        const b  = audio.ctx.createBuffer(1, 1, audio.ctx.sampleRate);
-        const bs = audio.ctx.createBufferSource();
-        bs.buffer = b;
-        bs.connect(audio.gain);
-        bs.start(0);
-      } catch {}
-      // Remove all unlock listeners after the first gesture
-      document.removeEventListener('pointerdown', unlockAudioOnce);
-      document.removeEventListener('keydown', unlockAudioOnce);
-      document.removeEventListener('touchstart', unlockAudioOnce, {passive:false});
-    }
-    // Attach once; any first interaction will unlock
-    document.addEventListener('pointerdown', unlockAudioOnce, {once:true});
-    document.addEventListener('keydown',      unlockAudioOnce, {once:true});
-    document.addEventListener('touchstart',   unlockAudioOnce, {once:true, passive:false});
+function unlockAudioOnce(){
+  ensureAudio();
+  if(audio.ctx && audio.ctx.state==='suspended'){ audio.ctx.resume().catch(()=>{}); }
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && audio.ctx && audio.ctx.state==='suspended') audio.ctx.resume().catch(()=>{}); });
+  window.addEventListener('focus',()=>{ if(audio.ctx && audio.ctx.state==='suspended') audio.ctx.resume().catch(()=>{}); });
+  window.addEventListener('pageshow',()=>{ if(audio.ctx && audio.ctx.state==='suspended') audio.ctx.resume().catch(()=>{}); });
+  try{ const b=audio.ctx.createBuffer(1,1,audio.ctx.sampleRate); const bs=audio.ctx.createBufferSource(); bs.buffer=b; bs.connect(audio.gain); bs.start(0);}catch{}
+  document.removeEventListener('pointerdown',unlockAudioOnce);
+  document.removeEventListener('keydown',unlockAudioOnce);
+  document.removeEventListener('touchstart',unlockAudioOnce,{passive:false});
+}
+document.addEventListener('pointerdown',unlockAudioOnce,{once:true});
+document.addEventListener('keydown',unlockAudioOnce,{once:true});
+document.addEventListener('touchstart',unlockAudioOnce,{once:true,passive:false});
+
 function startDrone(freq){
   ensureAudio(); stopDrone();
-  if (audio.ctx && audio.ctx.state === 'suspended') {
-    audio.ctx.resume().catch(()=>{});
-  }
-  stopDrone();
-  const osc = audio.ctx.createOscillator();
-  osc.type='sine'; osc.frequency.value=freq; osc.connect(audio.gain); osc.start();
-  audio.osc = osc;
+  if(audio.ctx && audio.ctx.state==='suspended'){ audio.ctx.resume().catch(()=>{}); }
+  const osc=audio.ctx.createOscillator(); osc.type='sine'; osc.frequency.value=freq; osc.connect(audio.gain); osc.start(); audio.osc=osc;
 }
 function stopDrone(){ if(audio.osc){ try{audio.osc.stop();}catch{} audio.osc.disconnect(); audio.osc=null; } }
-function notePcToFreq(pc, octave){ const midi=(octave+1)*12+pc; return 440*Math.pow(2,(midi-69)/12); }
+function notePcToFreq(pc,octave){ const midi=(octave+1)*12+pc; return 440*Math.pow(2,(midi-69)/12); }
 
-$("droneEnable").checked = state.drone.enabled;
-$("droneEnable").addEventListener("change", ()=> { state.drone.enabled = $("droneEnable").checked; if(!state.drone.enabled) stopDrone(); saveStateThrottled(); });
-$("droneOct").value = String(state.drone.octave);
-$("droneOct").addEventListener("change", ()=> { state.drone.octave = parseInt($("droneOct").value,10); saveStateThrottled(); });
-$("droneVol").value = String(state.drone.volume);
-$("droneVol").addEventListener("input", ()=> { state.drone.volume = parseFloat($("droneVol").value); if(audio.gain) audio.gain.gain.value=state.drone.volume; saveStateThrottled(); });
-// NEW: Beep volume binding (independent from drone volume)
-const beepVolEl = $("beepVol");
-if (beepVolEl) {
-  beepVolEl.value = String(state.timer.beepVol);
-  beepVolEl.addEventListener("input", () => {
-    state.timer.beepVol = parseFloat(beepVolEl.value);
-    saveStateThrottled();
-  });
-}
-/* Timer control */
-let timer = { running:false, left:0, tid:null };
-$("timerDur").value = String(state.timer.dur);
-$("timerDur").addEventListener("change", ()=> { state.timer.dur = parseInt($("timerDur").value,10); saveStateThrottled(); });
-$("timerAuto").checked = state.timer.auto;
-$("timerAuto").addEventListener("change", ()=> { state.timer.auto = $("timerAuto").checked; saveStateThrottled(); });
-$("timerBtn").addEventListener("click", ()=> { if(timer.running) stopTimer(); else startTimer(state.timer.dur); });
-function fmt(sec){
-  const m = String(Math.floor(sec/60)).padStart(2,'0');
-  const s = String(sec%60).padStart(2,'0');
-  return `${m}:${s}`;
-}function startTimer(secs){
-    stopTimer();
-    timer.running = true;
-    timer.left = secs;
-    $("timerBtn").textContent = 'Stop';
-    $("timeLeft").textContent = fmt(timer.left);
-    updateInlineTimer(timer.left);
-    timer.tid=setInterval(()=>{
-      timer.left--;
-      $("timeLeft").textContent = fmt(Math.max(0, timer.left));
-      updateInlineTimer(Math.max(0, timer.left));
+$("droneEnable").checked=state.drone.enabled;
+$("droneEnable").addEventListener("change",()=>{state.drone.enabled=$("droneEnable").checked; if(!state.drone.enabled) stopDrone(); saveStateThrottled();});
+$("droneOct").value=String(state.drone.octave);
+$("droneOct").addEventListener("change",()=>{state.drone.octave=parseInt($("droneOct").value,10); saveStateThrottled();});
+$("droneVol").value=String(state.drone.volume);
+$("droneVol").addEventListener("input",()=>{state.drone.volume=parseFloat($("droneVol").value); if(audio.gain) audio.gain.gain.value=state.drone.volume; saveStateThrottled();});
+const beepVolEl=$("beepVol"); if(beepVolEl){beepVolEl.value=String(state.timer.beepVol); beepVolEl.addEventListener("input",()=>{state.timer.beepVol=parseFloat(beepVolEl.value); saveStateThrottled();});}
 
-      if (timer.left <= 0) {
-        stopTimer();
-        beep();
+let timer={running:false,left:0,tid:null};
+$("timerDur").value=String(state.timer.dur);
+$("timerDur").addEventListener("change",()=>{state.timer.dur=parseInt($("timerDur").value,10); saveStateThrottled();});
+$("timerAuto").checked=state.timer.auto;
+$("timerAuto").addEventListener("change",()=>{state.timer.auto=$("timerAuto").checked; saveStateThrottled();});
+$("timerBtn").addEventListener("click",()=>{ if(timer.running) stopTimer(); else startTimer(state.timer.dur); });
+$("metroEnable").checked=state.metronome.enable;
+$("metroBpm").value=String(state.metronome.bpm);
+$("metroBeatsPerBar").value=String(state.metronome.bpb);
+$("metroBarsPerPrompt").value=String(state.metronome.bars);
+$("metroEnable").addEventListener("change",()=>{state.metronome.enable=$("metroEnable").checked; saveStateThrottled();});
+$("metroBpm").addEventListener("change",()=>{state.metronome.bpm=Math.max(20,Math.min(300,parseInt($("metroBpm").value||'120',10))); saveStateThrottled();});
+$("metroBeatsPerBar").addEventListener("change",()=>{state.metronome.bpb=parseInt($("metroBeatsPerBar").value,10); saveStateThrottled();});
+$("metroBarsPerPrompt").addEventListener("change",()=>{state.metronome.bars=parseInt($("metroBarsPerPrompt").value,10); saveStateThrottled();});
 
-        // Auto-generate new event and restart timer immediately
-        pick();  // <- triggers new Generate
-        startTimer(state.timer.dur);
-      }
-    },1000);
-  }
-function stopTimer(){
-  if(timer.tid){ clearInterval(timer.tid); timer.tid=null; }
-  timer.running=false;
-  $("timerBtn").textContent='Start';
-  updateInlineTimer(null);
-}
-    function beep(){
-      ensureAudio();
-      const ctx = audio.ctx;
+function fmt(sec){ const m=String(Math.floor(sec/60)).padStart(2,'0'); const s=String(sec%60).padStart(2,'0'); return `${m}:${s}`; }
+function updateInlineTimer(sec){ const el=document.querySelector('#out .timer-inline'); if(!el) return; el.textContent=(sec==null)?'':fmt(sec); }
 
-      // Use a dedicated gain so master drone volume doesn't affect the beep
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
+window.metronomeSeconds=function(bpm,bpb,bars){
+  const _bpm=Math.max(1,Number(bpm)||120), _bpb=Math.max(1,Number(bpb)||4), _bars=Math.max(1,Number(bars)||1);
+  return Math.max(1, Math.round(_bars*_bpb*(60/_bpm)));
+};
 
-      // Read the user-set volume; keep it safe
-      const vol = Math.max(0, Math.min(0.8, state.timer?.beepVol ?? 0.05));
-
-      // Schedule envelope on the audio clock (focus-proof)
-      const t0 = ctx.currentTime;
-      const on  = 0.01;  // attack
-      const len = 0.22;  // total length
-      const off = t0 + len;
-
-      gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.linearRampToValueAtTime(vol, t0 + on);
-      gain.gain.exponentialRampToValueAtTime(0.0001, off);
-
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(880, t0);
-
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(t0);
-      osc.stop(off);
+function startTimer(secs){
+  stopTimer(); timer.running=true; timer.left=secs;
+  $("timerBtn").textContent='Stop'; $("timeLeft").textContent=fmt(timer.left); updateInlineTimer(timer.left);
+  timer.tid=setInterval(()=>{
+    timer.left--; $("timeLeft").textContent=fmt(Math.max(0,timer.left)); updateInlineTimer(Math.max(0,timer.left));
+    if(timer.left<=0){
+      stopTimer(); beep(); pick();
+      const m=state.metronome||{}; const useMetro=!!m.enable && typeof window.metronomeSeconds==='function';
+      const secs2=useMetro? window.metronomeSeconds(Number(m.bpm)||120, Number(m.bpb)||4, Number(m.bars)||1) : state.timer.dur;
+      startTimer(secs2);
     }
-    
-function updateInlineTimer(sec){
-  const el = document.querySelector('#out .timer-inline');
-  if(!el) return;
-  el.textContent = (sec==null) ? '' : fmt(sec);
+  },1000);
+}
+function stopTimer(){ if(timer.tid){clearInterval(timer.tid); timer.tid=null;} timer.running=false; $("timerBtn").textContent='Start'; updateInlineTimer(null); }
+function beep(){
+  ensureAudio(); const ctx=audio.ctx;
+  const osc=ctx.createOscillator(); const gain=ctx.createGain();
+  const vol=Math.max(0,Math.min(0.8,state.timer?.beepVol ?? 0.05));
+  const t0=ctx.currentTime, on=0.01, len=0.22, off=t0+len;
+  gain.gain.setValueAtTime(0.0001,t0);
+  gain.gain.linearRampToValueAtTime(vol,t0+on);
+  gain.gain.exponentialRampToValueAtTime(0.0001,off);
+  osc.type='square'; osc.frequency.setValueAtTime(880,t0);
+  osc.connect(gain).connect(ctx.destination); osc.start(t0); osc.stop(off);
 }
 
-/* =====================================================
-   SRS (Spaced Repetition) MINIMAL IMPL
-   ===================================================== */
-function loadSRS(){ try{ const x=localStorage.getItem(SRS_KEY); return x? JSON.parse(x) : {}; }catch{return{};} }
-function saveSRS(){ try{ localStorage.setItem(SRS_KEY, JSON.stringify(state.srs.map)); }catch{} }
+/* ---------------------------- SRS ------------------------------------ */
+function loadSRS(){ try{const x=localStorage.getItem(SRS_KEY); return x?JSON.parse(x):{};}catch{return{};} }
+function saveSRS(){ try{localStorage.setItem(SRS_KEY,JSON.stringify(state.srs.map));}catch{} }
 function srsIntervals(box){ return [0,1,3,7,14,30][Math.max(0,Math.min(5,box))]; }
 function srsDueCount(){ const now=Date.now(); let n=0; for(const id in state.srs.map){ if(state.srs.map[id].due<=now) n++; } $("dueCount").textContent=n; }
-$("srsEnable").checked = state.srs.enabled;
-$("srsEnable").addEventListener("change", ()=> { state.srs.enabled=$("srsEnable").checked; $("srsControls").style.display=state.srs.enabled?'':'none'; srsDueCount(); saveStateThrottled(); });
-state.srs.map = loadSRS(); srsDueCount();
+$("srsEnable").checked=state.srs.enabled;
+$("srsEnable").addEventListener("change",()=>{state.srs.enabled=$("srsEnable").checked; $("srsControls").style.display=state.srs.enabled?'':''; srsDueCount(); saveStateThrottled();});
+state.srs.map=loadSRS(); srsDueCount();
 function gradeCurrent(tag){
-  const id = current.scale?.id; if(!id) return;
-  const rec = state.srs.map[id] || {box:0, due:0};
-  if(tag==='again') rec.box = 0;
-  if(tag==='hard')  rec.box = Math.min(5, rec.box+1);
-  if(tag==='easy')  rec.box = Math.min(5, rec.box+2);
-  const days = srsIntervals(rec.box);
-  rec.due = Date.now() + days*24*3600*1000;
+  const id=current.scale?.id; if(!id) return;
+  const rec=state.srs.map[id] || {box:0,due:0};
+  if(tag==='again') rec.box=0;
+  if(tag==='hard') rec.box=Math.min(5,rec.box+1);
+  if(tag==='easy') rec.box=Math.min(5,rec.box+2);
+  const days=srsIntervals(rec.box);
+  rec.due=Date.now()+days*24*3600*1000;
   state.srs.map[id]=rec; saveSRS(); srsDueCount();
 }
-$("againBtn").addEventListener("click", ()=>gradeCurrent('again'));
-$("hardBtn").addEventListener("click",  ()=>gradeCurrent('hard'));
-$("easyBtn").addEventListener("click",  ()=>gradeCurrent('easy'));
+$("againBtn").addEventListener("click",()=>gradeCurrent('again'));
+$("hardBtn").addEventListener("click",()=>gradeCurrent('hard'));
+$("easyBtn").addEventListener("click",()=>gradeCurrent('easy'));
 
-/* =====================================================
-   FRET SUGGESTION & DIAGRAM HELPERS
-   ===================================================== */
-function pickFretFor(noteVal, stringNum){
-  const maxFret = state.maxFret;
-  const preferLow = state.preferLow;
-  const open = state.instrument.tuning[stringNum-1];
-  const openPc = parseNotePc(open);
-  const tgtPc  = parseNotePc(noteVal);
+/* --------------------- FRET/DIAGRAM HELPERS -------------------------- */
+function pickFretFor(noteVal,stringNum){
+  const maxFret=state.maxFret, preferLow=state.preferLow;
+  const open=state.instrument.tuning[stringNum-1];
+  const openPc=parseNotePc(open), tgtPc=parseNotePc(noteVal);
   if(openPc==null || tgtPc==null) return null;
-
-  const matches = [];
-  for(let f=0; f<=24; f++){
-    if (((openPc + f) % 12) === tgtPc) matches.push(f);
-  }
-  const within = matches.filter(f => f <= maxFret);
-  if (within.length) return preferLow ? within[0] : within[within.length-1];
-  return preferLow ? matches[0] : matches[matches.length-1];
+  const matches=[]; for(let f=0; f<=24; f++){ if(((openPc+f)%12)===tgtPc) matches.push(f); }
+  const within=matches.filter(f=>f<=maxFret);
+  if(within.length) return preferLow?within[0]:within[within.length-1];
+  return preferLow?matches[0]:matches[matches.length-1];
 }
+const INTERVAL_TO_SEMITONE={'1':0,'b2':1,'♭2':1,'nat2':2,'2':2,'#2':3,'♯2':3,'b3':3,'♭3':3,'3':4,'nat3':4,'4':5,'nat4':5,'#4':6,'♯4':6,'b5':6,'♭5':6,'nat5':7,'5':7,'#5':8,'♯5':8,'b6':8,'♭6':8,'6':9,'b7':10,'♭7':10,'7':11,'nat7':11};
+function intervalStringToSemis(ivlStr){ return ivlStr.split('-').map(t=>INTERVAL_TO_SEMITONE[t.trim()] ?? null).filter(v=>v!==null); }
 
-/* Interval string → semitone offsets */
-const INTERVAL_TO_SEMITONE = {
-  '1':0,'b2':1,'♭2':1,'nat2':2,'2':2,'#2':3,'♯2':3,'b3':3,'♭3':3,'3':4,'nat3':4,
-  '4':5,'nat4':5,'#4':6,'♯4':6,'b5':6,'♭5':6,'nat5':7,'5':7,'#5':8,'♯5':8,'b6':8,'♭6':8,
-  '6':9,'b7':10,'♭7':10,'7':11,'nat7':11
-};
-function intervalStringToSemis(ivlStr){
-  return ivlStr.split('-').map(t => INTERVAL_TO_SEMITONE[t.trim()] ?? null).filter(v=>v!==null);
-}
+function drawFretboardDiagram(noteVal,scale,tuning,opts){
+  const wrap=$("fretSvgWrap"); wrap.innerHTML="";
+  const strings=tuning.length; const frets=Math.max(12,Math.min(24,opts.maxFrets||15));
+  const tonicPc=parseNotePc(noteVal); if(tonicPc==null) return;
+  const semis=intervalStringToSemis(scale.intervals);
+  const W=1000, BASE_H=Math.max(180,50+strings*28), GUTTER=40, H=BASE_H+GUTTER;
+  const svgns="http://www.w3.org/2000/svg";
+  const svg=document.createElementNS(svgns,"svg"); svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.setAttribute("preserveAspectRatio","xMidYMid meet");
+  const PAD_X=16, PAD_Y=16;
+  const boardLeft=PAD_X, boardRight=W-PAD_X, boardTop=PAD_Y, boardBottom=H-PAD_Y-GUTTER;
+  const boardWidth=boardRight-boardLeft, boardHeight=boardBottom-boardTop;
+  const nutW=10, fretsCount=frets, fretW=(boardWidth-nutW)/fretsCount;
+  const style=getComputedStyle(document.documentElement);
+  const gridColor=style.getPropertyValue('--fretboard-grid').trim()||'#cfcfcf';
+  const markerCol=style.getPropertyValue('--fretboard-marker').trim()||style.getPropertyValue('--fretboard-inlay').trim()||'#8a8a8a';
+  const nutColor=style.getPropertyValue('--fretboard-nut').trim()||'#ddd';
+  const dotFill=style.getPropertyValue('--fretboard-dot').trim()||'#fff';
+  const tonicEdge=style.getPropertyValue('--fretboard-tonic-edge').trim()||'#f00';
+  const regularEdge='#e5e5e5';
 
-/* =====================================================
-   FRETBOARD DIAGRAM RENDERER (SVG)
-   - All positions drawn inside the board (no open-string dots)
-   - Under-board fret markers live in a reserved gutter
-   ===================================================== */
-function drawFretboardDiagram(noteVal, scale, tuning, opts){
-  const wrap = $("fretSvgWrap");
-  wrap.innerHTML = "";
+  const nutRect=document.createElementNS(svgns,"rect");
+  nutRect.setAttribute("x",boardLeft); nutRect.setAttribute("y",boardTop);
+  nutRect.setAttribute("width",nutW); nutRect.setAttribute("height",boardHeight);
+  nutRect.setAttribute("fill",nutColor); svg.appendChild(nutRect);
 
-  const strings = tuning.length;
-  const frets = Math.max(12, Math.min(24, opts.maxFrets || 15));
-  const tonicPc = parseNotePc(noteVal);
-  if (tonicPc==null) return;
-
-  const semis = intervalStringToSemis(scale.intervals);
-
-  const W = 1000;
-  const BASE_H = Math.max(180, 50 + strings*28);  // board scales with string count
-  const GUTTER = 40;                              // bottom gutter so markers never collide
-  const H = BASE_H + GUTTER;
-
-  const svgns = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(svgns, "svg");
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
-
-  /* Board geometry */
-  const PAD_X = 16;
-  const PAD_Y = 16;
-
-  const boardLeft   = PAD_X;
-  const boardRight  = W - PAD_X;
-  const boardTop    = PAD_Y;
-  const boardBottom = H - PAD_Y - GUTTER;      // leave room for markers
-  const boardWidth  = boardRight - boardLeft;
-  const boardHeight = boardBottom - boardTop;
-
-  const nutW = 10;
-  const fretsCount = frets;
-  const fretW = (boardWidth - nutW) / fretsCount;
-
-  /* Visual styles */
-  const style       = getComputedStyle(document.documentElement);
-  const gridColor   = style.getPropertyValue('--fretboard-grid').trim()    || '#cfcfcf';
-  const markerCol   = style.getPropertyValue('--fretboard-marker').trim()  || style.getPropertyValue('--fretboard-inlay').trim() || '#8a8a8a';
-  const nutColor    = style.getPropertyValue('--fretboard-nut').trim()     || '#ddd';
-  const dotFill     = style.getPropertyValue('--fretboard-dot').trim()     || '#ffffff';
-  const tonicEdge   = style.getPropertyValue('--fretboard-tonic-edge').trim() || '#ff0000';
-  const regularEdge = '#e5e5e5';
-
-  /* Nut (left), right boundary, and intermediate frets */
-  const nutRect = document.createElementNS(svgns, "rect");
-  nutRect.setAttribute("x", boardLeft);
-  nutRect.setAttribute("y", boardTop);
-  nutRect.setAttribute("width", nutW);
-  nutRect.setAttribute("height", boardHeight);
-  nutRect.setAttribute("fill", nutColor);
-  svg.appendChild(nutRect);
-
-  const bridgeLine = document.createElementNS(svgns, "line");
-  bridgeLine.setAttribute("x1", boardRight);
-  bridgeLine.setAttribute("y1", boardTop);
-  bridgeLine.setAttribute("x2", boardRight);
-  bridgeLine.setAttribute("y2", boardBottom);
-  bridgeLine.setAttribute("stroke", gridColor);
-  bridgeLine.setAttribute("stroke-width", 2.5);
+  const bridgeLine=document.createElementNS(svgns,"line");
+  bridgeLine.setAttribute("x1",boardRight); bridgeLine.setAttribute("y1",boardTop);
+  bridgeLine.setAttribute("x2",boardRight); bridgeLine.setAttribute("y2",boardBottom);
+  bridgeLine.setAttribute("stroke",gridColor); bridgeLine.setAttribute("stroke-width",2.5);
   svg.appendChild(bridgeLine);
 
-  for (let f = 1; f < fretsCount; f++) {
-    const x = boardLeft + nutW + f * fretW;
-    const line = document.createElementNS(svgns, "line");
-    line.setAttribute("x1", x); line.setAttribute("y1", boardTop);
-    line.setAttribute("x2", x); line.setAttribute("y2", boardBottom);
-    line.setAttribute("stroke", gridColor);
-    line.setAttribute("stroke-width", 2);
+  for(let f=1; f<fretsCount; f++){
+    const x=boardLeft+nutW+f*fretW;
+    const line=document.createElementNS(svgns,"line");
+    line.setAttribute("x1",x); line.setAttribute("y1",boardTop);
+    line.setAttribute("x2",x); line.setAttribute("y2",boardBottom);
+    line.setAttribute("stroke",gridColor); line.setAttribute("stroke-width",2);
     svg.appendChild(line);
   }
-
-  /* Strings (horizontal lines) */
-  for (let s = 0; s < strings; s++) {
-    const y = boardTop + s * (boardHeight / Math.max(1, (strings - 1)));
-    const line = document.createElementNS(svgns, "line");
-    line.setAttribute("x1", boardLeft);
-    line.setAttribute("y1", y);
-    line.setAttribute("x2", boardRight);
-    line.setAttribute("y2", y);
-    line.setAttribute("stroke", gridColor);
-    line.setAttribute("stroke-width", 2);
+  for(let s=0; s<strings; s++){
+    const y=boardTop + s*(boardHeight/Math.max(1,(strings-1)));
+    const line=document.createElementNS(svgns,"line");
+    line.setAttribute("x1",boardLeft); line.setAttribute("y1",y);
+    line.setAttribute("x2",boardRight); line.setAttribute("y2",y);
+    line.setAttribute("stroke",gridColor); line.setAttribute("stroke-width",2);
     svg.appendChild(line);
   }
-
-  /* Scale dots (fretted only). Roots get a thicker red stroke. */
-  for (let s = 0; s < strings; s++) {
-    const openPc = parseNotePc(tuning[strings - 1 - s]); // bottom row is lowest string
-    const y = boardTop + s * (boardHeight / Math.max(1, (strings - 1)));
-    for (let f = 1; f <= fretsCount; f++) {
-      const pcHere = (openPc + f) % 12;
-      const isScaleTone = semis.some(semi => (tonicPc + semi) % 12 === pcHere);
-      if (!isScaleTone) continue;
-      const isTonic = pcHere === tonicPc;
-      const cx = boardLeft + nutW + (f - 0.5) * fretW;
-      const r = isTonic ? 10 : 9;
-      const c = document.createElementNS(svgns, "circle");
-      c.setAttribute("cx", cx); c.setAttribute("cy", y);
-      c.setAttribute("r", r);
-      c.setAttribute("fill", dotFill);
-      c.setAttribute("stroke", isTonic ? tonicEdge : regularEdge);
-      c.setAttribute("stroke-width", isTonic ? 4 : 1.6);
+  for(let s=0; s<strings; s++){
+    const openPc=parseNotePc(tuning[strings-1-s]); // bottom row = lowest string
+    const y=boardTop + s*(boardHeight/Math.max(1,(strings-1)));
+    for(let f=1; f<=fretsCount; f++){
+      const pcHere=(openPc+f)%12;
+      const isScaleTone=semis.some(semi => (tonicPc+semi)%12===pcHere);
+      if(!isScaleTone) continue;
+      const isTonic=pcHere===tonicPc;
+      const cx=boardLeft+nutW+(f-0.5)*fretW;
+      const r=isTonic?10:9;
+      const c=document.createElementNS(svgns,"circle");
+      c.setAttribute("cx",cx); c.setAttribute("cy",y); c.setAttribute("r",r);
+      c.setAttribute("fill",dotFill);
+      c.setAttribute("stroke",isTonic?tonicEdge:regularEdge);
+      c.setAttribute("stroke-width",isTonic?4:1.6);
       svg.appendChild(c);
     }
   }
-
-  /* Under-board fret markers: 3,5,7,9,12,15,17,19,21,24 (double at 12/24) */
-  if (state.markers.enable) {
-    const markerY = boardBottom + Math.round(GUTTER * 0.66); // visually centered in the gutter
-    const singles = [3,5,7,9,15,17,19,21];
-    const dbls    = [12,24];
-
-    const drawDot = (x, size=3) => {
-      if (state.markers.shape === 'square') {
-        const half = size;
-        const r = document.createElementNS(svgns, "rect");
-        r.setAttribute("x", x - half);
-        r.setAttribute("y", markerY - half);
-        r.setAttribute("width", size*2);
-        r.setAttribute("height", size*2);
-        r.setAttribute("rx", 1.5);
-        r.setAttribute("fill", markerCol);
-        r.setAttribute("opacity", ".8");
-        svg.appendChild(r);
+  if(state.markers.enable){
+    const markerY=boardBottom + Math.round(GUTTER*0.66);
+    const singles=[3,5,7,9,15,17,19,21], dbls=[12,24];
+    const drawDot=(x,size=3)=>{
+      if(state.markers.shape==='square'){
+        const half=size; const r=document.createElementNS(svgns,"rect");
+        r.setAttribute("x",x-half); r.setAttribute("y",markerY-half);
+        r.setAttribute("width",size*2); r.setAttribute("height",size*2); r.setAttribute("rx",1.5);
+        r.setAttribute("fill",markerCol); r.setAttribute("opacity",".8"); svg.appendChild(r);
       } else {
-        const c = document.createElementNS(svgns, "circle");
-        c.setAttribute("cx", x);
-        c.setAttribute("cy", markerY);
-        c.setAttribute("r", size);
-        c.setAttribute("fill", markerCol);
-        c.setAttribute("opacity", ".8");
-        svg.appendChild(c);
+        const c=document.createElementNS(svgns,"circle");
+        c.setAttribute("cx",x); c.setAttribute("cy",markerY); c.setAttribute("r",size);
+        c.setAttribute("fill",markerCol); c.setAttribute("opacity",".8"); svg.appendChild(c);
       }
     };
-
-    singles.forEach(f=>{
-      if (f>fretsCount) return;
-      const cx = boardLeft + nutW + (f - 0.5) * fretW;
-      drawDot(cx, 3);
-      if (state.markers.nums) {
-        const t = document.createElementNS(svgns, "text");
-        t.setAttribute("x", cx);
-        t.setAttribute("y", markerY + 12);
-        t.setAttribute("text-anchor", "middle");
-        t.setAttribute("font-size", "10");
-        t.setAttribute("fill", markerCol);
-        t.setAttribute("opacity", ".9");
-        t.textContent = String(f);
-        svg.appendChild(t);
-      }
-    });
-
-    dbls.forEach(f=>{
-      if (f>fretsCount) return;
-      const cx = boardLeft + nutW + (f - 0.5) * fretW;
-      const spacing = 10;
-      drawDot(cx - spacing/2, 3);
-      drawDot(cx + spacing/2, 3);
-      if (state.markers.nums) {
-        const t = document.createElementNS(svgns, "text");
-        t.setAttribute("x", cx);
-        t.setAttribute("y", markerY + 12);
-        t.setAttribute("text-anchor", "middle");
-        t.setAttribute("font-size", "10");
-        t.setAttribute("fill", markerCol);
-        t.setAttribute("opacity", ".9");
-        t.textContent = String(f);
-        svg.appendChild(t);
-      }
-    });
+    const addNum=(cx,f)=>{ if(!state.markers.nums) return; const t=document.createElementNS(svgns,"text"); t.setAttribute("x",cx); t.setAttribute("y",markerY+12); t.setAttribute("text-anchor","middle"); t.setAttribute("font-size","10"); t.setAttribute("fill",markerCol); t.setAttribute("opacity",".9"); t.textContent=String(f); svg.appendChild(t); };
+    singles.forEach(f=>{ if(f>fretsCount) return; const cx=boardLeft+nutW+(f-0.5)*fretW; drawDot(cx,3); addNum(cx,f); });
+    dbls.forEach(f=>{ if(f>fretsCount) return; const cx=boardLeft+nutW+(f-0.5)*fretW; const spacing=10; drawDot(cx-spacing/2,3); drawDot(cx+spacing/2,3); addNum(cx,f); });
   }
-
-  $("fretSvgWrap").appendChild(svg);
+  wrap.appendChild(svg);
 }
+function updateDiagramVisibility(){ $("diagramCard").classList.toggle("hidden", !(state.diagEnable && state.mode==='guitar')); }
 
-/* Diagram panel visibility based on mode + toggle */
-function updateDiagramVisibility(){
-  $("diagramCard").classList.toggle("hidden", !(state.diagEnable && state.mode==='guitar'));
-}
-
-/* =====================================================
-   GENERATE: pick random string/note/scale (+ SRS priority)
-   ===================================================== */
-let current = { string:null, note:null, scale:null };
-
+/* ----------------------------- PICK ---------------------------------- */
+let current={string:null,note:null,scale:null};
 function pick(){
-  const stringsPool = BASE_STRINGS.filter(s => state.selected.strings.has(s));
-  const notesPool   = BASE_NOTES.filter(n => state.selected.notes.has(n));
-  const scalesPool  = EMBEDDED_SCALES.filter(s => state.selected.scales.has(s.id) && state.selected.sizes.has(s.size));
-  if (!notesPool.length || !scalesPool.length) {
-    $("out").innerHTML = '<div class="line">No items selected.</div>'; return;
-  }
+  const stringsPool=BASE_STRINGS.filter(s=>state.selected.strings.has(s));
+  const notesPool=BASE_NOTES.filter(n=>state.selected.notes.has(n));
+  const scalesPool=EMBEDDED_SCALES.filter(s=>state.selected.scales.has(s.id) && state.selected.sizes.has(s.size));
+  if(!notesPool.length || !scalesPool.length){ $("out").innerHTML='<div class="line">No items selected.</div>'; return; }
 
-  // SRS: prefer “due” items if enabled
-  let scaleChoice = null;
+  let scaleChoice=null;
   if(state.srs.enabled){
     const now=Date.now();
-    const due = scalesPool.filter(s=>{
-      const rec=state.srs.map[s.id]; return !rec || rec.due<=now;
-    });
-    const pool = due.length ? due : scalesPool;
-    scaleChoice = pool[Math.floor(Math.random()*pool.length)];
-  } else {
-    scaleChoice = scalesPool[Math.floor(Math.random()*scalesPool.length)];
-  }
+    const due=scalesPool.filter(s=>{const rec=state.srs.map[s.id]; return !rec || rec.due<=now;});
+    const pool=due.length?due:scalesPool;
+    scaleChoice=pool[Math.floor(Math.random()*pool.length)];
+  } else { scaleChoice=scalesPool[Math.floor(Math.random()*scalesPool.length)]; }
 
-  const stringVal = (state.mode==='guitar' && stringsPool.length) ? stringsPool[Math.floor(Math.random()*stringsPool.length)] : null;
-  const noteVal   = notesPool[Math.floor(Math.random()*notesPool.length)];
+  const stringVal=(state.mode==='guitar' && stringsPool.length) ? stringsPool[Math.floor(Math.random()*stringsPool.length)] : null;
+  const noteVal=notesPool[Math.floor(Math.random()*notesPool.length)];
+  current={string:stringVal, note:noteVal, scale:scaleChoice};
 
-  current = { string:stringVal, note:noteVal, scale:scaleChoice };
+  const nameStr=toMusical(scaleChoice.name);
+  const ivlStr=toMusical(scaleChoice.intervals);
+  const metaStr=`(ID: ${scaleChoice.id}, Size: ${scaleChoice.size})`;
 
-  const nameStr = toMusical(scaleChoice.name);
-  const ivlStr  = toMusical(scaleChoice.intervals);
-  const metaStr = `(ID: ${scaleChoice.id}, Size: ${scaleChoice.size})`;
+  const fret=(state.mode==='guitar' && state.showFret && stringVal) ? pickFretFor(noteVal, parseInt(stringVal,10)) : null;
 
-  // Optional fret suggestion (top line)
-  const fret = (state.mode==='guitar' && state.showFret && stringVal)
-      ? pickFretFor(noteVal, parseInt(stringVal,10))
-      : null;
+  const topParts=[]; if(state.mode==='guitar' && stringVal) topParts.push(`<span class="label">String:</span> ${stringVal}`);
+  if(state.mode==='guitar' && fret!=null) topParts.push(`<span class="label">Fret:</span> ${fret}`);
+  const topLine=topParts.length? `<div class="line fit">${topParts.join(' · ')}</div>` : '';
+  const secondParts=[toMusical(noteVal), nameStr];
+  const secondLine=`<div class="line">${secondParts.filter(Boolean).join(' · ')} <span class="meta">${metaStr}</span></div>`;
 
-  const topParts = [];
-  if (state.mode === 'guitar' && stringVal) topParts.push(`<span class="label">String:</span> ${stringVal}`);
-  if (state.mode === 'guitar' && fret != null) topParts.push(`<span class="label">Fret:</span> ${fret}`);
-  const topLine = topParts.length ? `<div class="line fit">${topParts.join(' · ')}</div>` : '';
-
-  const secondParts = [ toMusical(noteVal), nameStr ];
-  const secondLine = `<div class="line">${secondParts.filter(Boolean).join(' · ')} <span class="meta">${metaStr}</span></div>`;
-
-  $("out").innerHTML = `
-    ${topLine}
-    ${secondLine}
-    <div class="line"><span class="label">Intervals:</span> ${ivlStr}</div>
-    <div class="timer-inline" id="inlineTimer"></div>
-  `;
+  $("out").innerHTML = `${topLine}${secondLine}<div class="line"><span class="label">Intervals:</span> ${ivlStr}</div><div class="timer-inline"></div>`;
   fitLines();
 
-  // Drone
   if(state.drone.enabled){
-    const pc = parseNotePc(noteVal);
-    if (pc!=null){ const freq = notePcToFreq(pc, state.drone.octave); startDrone(freq); }
+    const pc=parseNotePc(noteVal); if(pc!=null){ startDrone( notePcToFreq(pc, state.drone.octave) ); }
   } else { stopDrone(); }
 
-  // Timer
-  if (state.timer.auto) {
-    startTimer(state.timer.dur);
-  } else {
-    stopTimer();
-    updateInlineTimer(null);
-  }
+  if(state.timer.auto){
+    const m=state.metronome||{}; const useMetro=!!m.enable && typeof window.metronomeSeconds==='function';
+    const secs=useMetro? window.metronomeSeconds(Number(m.bpm)||120, Number(m.bpb)||4, Number(m.bars)||1) : state.timer.dur;
+    startTimer(secs);
+  } else { stopTimer(); updateInlineTimer(null); }
 
-  // Diagram
   updateDiagramVisibility();
-  if (state.diagEnable && state.mode==='guitar'){
-    drawFretboardDiagram(
-      noteVal,
-      scaleChoice,
-      state.instrument.tuning.slice(0,state.instrument.count).reverse(), // reverse so bottom row is lowest
-      {maxFrets: Math.max(12, Math.min(24, state.maxFret))}
-    );
+  if(state.diagEnable && state.mode==='guitar'){
+    drawFretboardDiagram(noteVal, scaleChoice, state.instrument.tuning.slice(0,state.instrument.count).reverse(), {maxFrets:Math.max(12,Math.min(24,state.maxFret))});
   }
-
-  $("srsControls").style.display = state.srs.enabled ? '' : 'none';
+  $("srsControls").style.display=state.srs.enabled?'':'none';
 }
 
-/* Buttons & quick actions */
-$("pickBtn").addEventListener("click", pick);
-$("stopBtn").addEventListener("click", () => {
-  stopTimer();   // stop countdown
-  stopDrone();   // silence drone
+/* ----------------------- EVENTS / SHORTCUTS -------------------------- */
+$("pickBtn").addEventListener("click",pick);
+$("stopBtn").addEventListener("click",()=>{ stopTimer(); stopDrone(); });
+document.addEventListener("keydown",(e)=>{
+  const tag=(e.target && e.target.tagName)? e.target.tagName : "";
+  if((e.code==="Space" || e.key===" ") && !/INPUT|TEXTAREA|SELECT/.test(tag)){ e.preventDefault(); pick(); }
 });
-    
-/* Spacebar to Generate (unless typing in inputs) */
-document.addEventListener("keydown", (e)=>{
-  const tag = (e.target && e.target.tagName) ? e.target.tagName : "";
-  if ((e.code === "Space" || e.key === " ") && !/INPUT|TEXTAREA|SELECT/.test(tag)) {
-    e.preventDefault();
-    pick();
-  }
-});
+const outEl=$("out");
+outEl.addEventListener("click",pick);
+outEl.addEventListener("touchend",(e)=>{ e.preventDefault(); pick(); },{passive:false});
+window.addEventListener("resize",fitLines);
+window.addEventListener("orientationchange",()=>setTimeout(fitLines,60));
 
-/* Tap/click the result box to Generate (iOS-friendly) */
-const outEl = $("out");
-outEl.addEventListener("click", pick);
-outEl.addEventListener("touchend", function(e){ e.preventDefault(); pick(); }, { passive:false });
-
-/* Refit on resize / rotate */
-window.addEventListener("resize", fitLines);
-window.addEventListener("orientationchange", () => setTimeout(fitLines, 60));
-
-/* =====================================================
-   SRS BOOTSTRAP + INITIAL RENDER
-   ===================================================== */
+/* ------------------------- BOOTSTRAP --------------------------------- */
 state.srs.map = loadSRS();
-function srsDueCountBoot(){ const now=Date.now(); let n=0; for(const id in state.srs.map){ if(state.srs.map[id].due<=now) n++; } $("dueCount").textContent=n; }
-srsDueCountBoot();
-
+function fitLines(){ const out=$("out"); const minSize=12; out.querySelectorAll('.line.fit').forEach(line=>{ line.style.fontSize=""; const w=out.clientWidth-6; if(line.scrollWidth>w){ const fs=parseFloat(getComputedStyle(line).fontSize) || parseFloat(getComputedStyle(out).fontSize) || 24; const ratio=w/line.scrollWidth; line.style.fontSize=Math.max(minSize, fs*ratio)+"px"; } }); }
+srsDueCount();
 renderFilters();
 updateDiagramVisibility();
-
-/* Timer helper (duplicated where needed) */
-function updateInlineTimer(sec){
-  const el = document.querySelector('#out .timer-inline');
-  if(!el) return;
-  el.textContent = (sec==null) ? '' : fmt(sec);
-}
 </script>
+</body>
+</html>
