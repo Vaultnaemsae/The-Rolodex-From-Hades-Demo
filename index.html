@@ -1165,8 +1165,36 @@ function ensureAudio(){
   gain.connect(ctx.destination);
   audio.ctx = ctx; audio.gain = gain;
 }
+    // --- Safari/macOS audio unlock (one-time, user-gesture based) ---
+    function unlockAudioOnce(){
+      ensureAudio();
+      // Resume if Safari left it suspended
+      if (audio.ctx && audio.ctx.state === 'suspended') {
+        audio.ctx.resume().catch(()=>{});
+      }
+      // Play a 1-frame silent buffer to fully unlock on WebKit
+      try {
+        const b  = audio.ctx.createBuffer(1, 1, audio.ctx.sampleRate);
+        const bs = audio.ctx.createBufferSource();
+        bs.buffer = b;
+        bs.connect(audio.gain);
+        bs.start(0);
+      } catch {}
+      // Remove all unlock listeners after the first gesture
+      document.removeEventListener('pointerdown', unlockAudioOnce);
+      document.removeEventListener('keydown', unlockAudioOnce);
+      document.removeEventListener('touchstart', unlockAudioOnce, {passive:false});
+    }
+    // Attach once; any first interaction will unlock
+    document.addEventListener('pointerdown', unlockAudioOnce, {once:true});
+    document.addEventListener('keydown',      unlockAudioOnce, {once:true});
+    document.addEventListener('touchstart',   unlockAudioOnce, {once:true, passive:false});
 function startDrone(freq){
   ensureAudio(); stopDrone();
+  if (audio.ctx && audio.ctx.state === 'suspended') {
+    audio.ctx.resume().catch(()=>{});
+  }
+  stopDrone();
   const osc = audio.ctx.createOscillator();
   osc.type='sine'; osc.frequency.value=freq; osc.connect(audio.gain); osc.start();
   audio.osc = osc;
@@ -1217,7 +1245,11 @@ function stopTimer(){
   $("timerBtn").textContent='Start';
   updateInlineTimer(null);
 }
-function beep(){ ensureAudio(); const o=audio.ctx.createOscillator(), g=audio.ctx.createGain(); o.type='square'; o.frequency.value=880; g.gain.value=.25; o.connect(g).connect(audio.ctx.destination); o.start(); setTimeout(()=>{ try{o.stop();}catch{} },180); }
+function beep(){ ensureAudio();
+    if (audio.ctx && audio.ctx.state === 'suspended') {
+      audio.ctx.resume().catch(()=>{});
+    }
+    const o=audio.ctx.createOscillator(), g=audio.ctx.createGain(); o.type='square'; o.frequency.value=880; g.gain.value=.25; o.connect(g).connect(audio.ctx.destination); o.start(); setTimeout(()=>{ try{o.stop();}catch{} },180); }
 function updateInlineTimer(sec){
   const el = document.querySelector('#out .timer-inline');
   if(!el) return;
