@@ -1159,11 +1159,15 @@ function setDataStatus(msg){
    ===================================================== */
 let audio = { ctx:null, gain:null, osc:null };
 function ensureAudio(){
-  if(audio.ctx) return;
-  const ctx = new (window.AudioContext||window.webkitAudioContext)();
-  const gain = ctx.createGain(); gain.gain.value = state.drone.volume;
-  gain.connect(ctx.destination);
-  audio.ctx = ctx; audio.gain = gain;
+  // If missing or closed, (re)create
+  if (!audio.ctx || audio.ctx.state === 'closed') {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const gain = ctx.createGain();
+    gain.gain.value = state.drone.volume;
+    gain.connect(ctx.destination);
+    audio.ctx = ctx;
+    audio.gain = gain;
+  }
 }
     // --- Safari/macOS audio unlock (one-time, user-gesture based) ---
     function unlockAudioOnce(){
@@ -1171,6 +1175,30 @@ function ensureAudio(){
       // Resume if Safari left it suspended
       if (audio.ctx && audio.ctx.state === 'suspended') {
         audio.ctx.resume().catch(()=>{});
+      }
+      // Extra resilience: resume on focus/visibility return (Safari sometimes suspends)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && audio.ctx && audio.ctx.state === 'suspended') {
+          audio.ctx.resume().catch(()=>{});
+        }
+      });
+      window.addEventListener('focus', () => {
+        if (audio.ctx && audio.ctx.state === 'suspended') {
+          audio.ctx.resume().catch(()=>{});
+        }
+      });
+      // Back/forward cache restore (bfcache)
+      window.addEventListener('pageshow', (e) => {
+        if (audio.ctx && audio.ctx.state === 'suspended') {
+          audio.ctx.resume().catch(()=>{});
+        }
+      });
+      if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+        navigator.mediaDevices.addEventListener('devicechange', () => {
+          if (audio.ctx && audio.ctx.state === 'suspended') {
+            audio.ctx.resume().catch(()=>{});
+          }
+        });
       }
       // Play a 1-frame silent buffer to fully unlock on WebKit
       try {
@@ -1249,7 +1277,7 @@ function beep(){ ensureAudio();
     if (audio.ctx && audio.ctx.state === 'suspended') {
       audio.ctx.resume().catch(()=>{});
     }
-    const o=audio.ctx.createOscillator(), g=audio.ctx.createGain(); o.type='square'; o.frequency.value=880; g.gain.value=.25; o.connect(g).connect(audio.ctx.destination); o.start(); setTimeout(()=>{ try{o.stop();}catch{} },180); }
+    const o=audio.ctx.createOscillator(), g=audio.ctx.createGain(); o.type='square'; o.frequency.value=880; g.gain.value=.05; o.connect(g).connect(audio.ctx.destination); o.start(); setTimeout(()=>{ try{o.stop();}catch{} },180); }
 function updateInlineTimer(sec){
   const el = document.querySelector('#out .timer-inline');
   if(!el) return;
