@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>The Rolodex From Hades [Demo Ver 1.9]</title>
+<title>The Rolodex From Hades [Demo Ver 1.8]</title>
 
 <style>
   :root{
@@ -94,7 +94,7 @@
 </head>
 <body>
 
-<h1>The Rolodex From Hades [Demo Ver 1.9]</h1>
+<h1>The Rolodex From Hades [Demo Ver 1.8]</h1>
 <h2>The "rolodex" offers a systematic and gamified approach to help musicians learn to improvise…</h2>
 
 <div class="row">
@@ -626,7 +626,7 @@ $("markerControls").style.display=state.diagEnable?'':'none';
 $("markersEnable").checked=state.markers.enable; $("markerShape").value=state.markers.shape; $("markerNums").checked=state.markers.nums;
 $("markersEnable").addEventListener("change",()=>{state.markers.enable=$("markersEnable").checked; saveStateThrottled();});
 $("markerShape").addEventListener("change",()=>{state.markers.shape=$("markerShape").value; saveStateThrottled();});
-$("markerNums").addEventListener("change",()=>{state.markers.nms=$("markerNums").checked; state.markers.nums=$("markerNums").checked; saveStateThrottled();});
+$("markerNums").addEventListener("change",()=>{state.markers.nums=$("markerNums").checked; saveStateThrottled();});
 
 /* -------------------------- DATA SOURCE UI ---------------------------- */
 function _replaceScalesArray(arr){
