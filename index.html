@@ -390,6 +390,7 @@
       <div class="timer">
         <label>Timer</label>
         <select id="timerDur">
+          <option value="4">4s</option>
           <option value="15">15s</option>
           <option value="30">30s</option>
           <option value="60" selected>60s</option>
@@ -734,7 +735,7 @@ function loadState(){
         volume:  (typeof x.drone?.volume==='number') ? Math.max(0,Math.min(1,x.drone.volume)) : 0.25
       },
       timer: {
-        dur: [15,30,60,90,120,180].includes(+x.timer?.dur) ? +x.timer.dur : 60,
+        dur: [4,15,30,60,90,120,180].includes(+x.timer?.dur) ? +x.timer.dur : 60,
         auto: !!x.timer?.auto,
         beepVol: (typeof x.timer?.beepVol === 'number')
           ? Math.max(0, Math.min(0.8, x.timer.beepVol))
@@ -1270,17 +1271,20 @@ function fmt(sec){
     $("timerBtn").textContent = 'Stop';
     $("timeLeft").textContent = fmt(timer.left);
     updateInlineTimer(timer.left);
-    timer.tid = setInterval(()=>{
+    timer.tid=setInterval(()=>{
       timer.left--;
-      $("timeLeft").textContent = fmt(Math.max(0,timer.left));
-      updateInlineTimer(Math.max(0,timer.left));
+      $("timeLeft").textContent = fmt(Math.max(0, timer.left));
+      updateInlineTimer(Math.max(0, timer.left));
+
       if (timer.left <= 0) {
         stopTimer();
         beep();
-        pick();                       // generate new material
-        startTimer(state.timer.dur);  // restart countdown
+
+        // Auto-generate new event and restart timer immediately
+        pick();  // <- triggers new Generate
+        startTimer(state.timer.dur);
       }
-    }, 1000);
+    },1000);
   }
 function stopTimer(){
   if(timer.tid){ clearInterval(timer.tid); timer.tid=null; }
