@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>The Rolodex From Hades [Version 1.6]</title>
+<title>The Rolodex From Hades [Demo Ver 1.7]</title>
 
 <style>
   /* =========================
@@ -214,7 +214,7 @@
 <!-- ======================================================
      HEADER + TOP-LEVEL ACTIONS
      ====================================================== -->
-<h1>The Rolodex From Hades [Version 1.6]</h1>
+<h1>The Rolodex From Hades [Demo Ver 1.7]</h1>
 <h2>The "rolodex" offers a systematic and gamified approach to help musicians learn to improvise. The material is derived from a logical system of intervallic sequence organization. It bears similarities to pitch-class set theory and particularly draws inspiration from two musical visionaries: Allan Holdsworth and Wayne Krantz. The tool - in addition to comprehensively generating scales and intervallic patterns - records the musician's progress. These characteristics combine to help musicians internalize the presented material and devlop valuable skills in memorizing, recalling and applying scales harmonically and melodically.</h2>
 
 <div class="row">
@@ -382,7 +382,11 @@
         <label>Drone Volume</label>
         <input id="droneVol" type="range" min="0" max="1" step="0.01" value="0.25">
       </div>
-
+      <!-- NEW: Beep Volume (independent of drone volume) -->
+      <div class="field">
+        <label>Beep Volume</label>
+        <input id="beepVol" type="range" min="0" max="0.3" step="0.005" value="0.05">
+      </div>
       <div class="timer">
         <label>Timer</label>
         <select id="timerDur">
@@ -683,7 +687,7 @@ function stateToJSON(s){
     preferLow: s.preferLow,
     diagEnable: s.diagEnable,
     drone: { enabled:s.drone.enabled, octave:s.drone.octave, volume:s.drone.volume },
-    timer: { dur:s.timer.dur, auto:s.timer.auto },
+    timer: { dur:s.timer.dur, auto:s.timer.auto, beepVol:s.timer.beepVol },
     srs: { enabled:s.srs.enabled },
 
     /* Diagram marker prefs */
@@ -731,7 +735,10 @@ function loadState(){
       },
       timer: {
         dur: [15,30,60,90,120,180].includes(+x.timer?.dur) ? +x.timer.dur : 60,
-        auto: !!x.timer?.auto
+        auto: !!x.timer?.auto,
+        beepVol: (typeof x.timer?.beepVol === 'number')
+          ? Math.max(0, Math.min(0.8, x.timer.beepVol))
+          : 0.05
       },
       srs: { enabled: !!x.srs?.enabled, map: {} },
 
@@ -770,7 +777,7 @@ let state = loadState() || {
   preferLow: true,
   diagEnable: false,
   drone: { enabled:false, octave:3, volume:0.25 },
-  timer: { dur:60, auto:false },
+  timer: { dur:60, auto:false, beepVol:0.05 },
   srs: { enabled:false, map:{} },
   markers: { enable:true, shape:'dot', nums:false }
 };
@@ -1236,7 +1243,15 @@ $("droneOct").value = String(state.drone.octave);
 $("droneOct").addEventListener("change", ()=> { state.drone.octave = parseInt($("droneOct").value,10); saveStateThrottled(); });
 $("droneVol").value = String(state.drone.volume);
 $("droneVol").addEventListener("input", ()=> { state.drone.volume = parseFloat($("droneVol").value); if(audio.gain) audio.gain.gain.value=state.drone.volume; saveStateThrottled(); });
-
+// NEW: Beep volume binding (independent from drone volume)
+const beepVolEl = $("beepVol");
+if (beepVolEl) {
+  beepVolEl.value = String(state.timer.beepVol);
+  beepVolEl.addEventListener("input", () => {
+    state.timer.beepVol = parseFloat(beepVolEl.value);
+    saveStateThrottled();
+  });
+}
 /* Timer control */
 let timer = { running:false, left:0, tid:null };
 $("timerDur").value = String(state.timer.dur);
@@ -1273,11 +1288,35 @@ function stopTimer(){
   $("timerBtn").textContent='Start';
   updateInlineTimer(null);
 }
-function beep(){ ensureAudio();
-    if (audio.ctx && audio.ctx.state === 'suspended') {
-      audio.ctx.resume().catch(()=>{});
+    function beep(){
+      ensureAudio();
+      const ctx = audio.ctx;
+
+      // Use a dedicated gain so master drone volume doesn't affect the beep
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      // Read the user-set volume; keep it safe
+      const vol = Math.max(0, Math.min(0.8, state.timer?.beepVol ?? 0.05));
+
+      // Schedule envelope on the audio clock (focus-proof)
+      const t0 = ctx.currentTime;
+      const on  = 0.01;  // attack
+      const len = 0.22;  // total length
+      const off = t0 + len;
+
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.linearRampToValueAtTime(vol, t0 + on);
+      gain.gain.exponentialRampToValueAtTime(0.0001, off);
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(880, t0);
+
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(off);
     }
-    const o=audio.ctx.createOscillator(), g=audio.ctx.createGain(); o.type='square'; o.frequency.value=880; g.gain.value=.05; o.connect(g).connect(audio.ctx.destination); o.start(); setTimeout(()=>{ try{o.stop();}catch{} },180); }
+    
 function updateInlineTimer(sec){
   const el = document.querySelector('#out .timer-inline');
   if(!el) return;
