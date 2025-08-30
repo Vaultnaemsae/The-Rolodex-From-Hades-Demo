@@ -1,8 +1,14 @@
 <!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>The Rolodex From Hades [Demo Version]</title>
+<title>The Rolodex From Hades [Version 1.4]</title>
+
 <style>
+  /* =========================
+     THEME & LAYOUT VARIABLES
+     - Colors, spacing, radii
+     - App-wide sizing constraints
+     ========================= */
   :root {
     --bg: #2c0f1a;        /* deep maroon background */
     --card-bg: #111;      /* near-black panels */
@@ -19,15 +25,15 @@
 
     --filters-maxw: 1200px;
 
-    /* Fretboard colors (Pure Black scheme) */
+    /* Fretboard color scheme */
     --fretboard-board: #000000;    /* pure black background */
     --fretboard-grid:  #cfcfcf;    /* light gray frets/strings */
-    --fretboard-inlay: #9a9a9a;    /* legacy inlay tone (we reuse for markers) */
-    --fretboard-marker: #8a8a8a;   /* NEW: fret marker color */
-    --fretboard-nut:   #dddddd;    /* nut stays light */
-    --fretboard-dot:   #ffffff;    /* white dots */
-    --fretboard-tonic: #e4a7bf;    /* not used now (we render roots as white with red edge) */
-    --fretboard-tonic-edge: #ff0000; /* red border for root notes */
+    --fretboard-inlay: #9a9a9a;    /* legacy inlay tone (also used as marker fallback) */
+    --fretboard-marker: #8a8a8a;   /* under-board fret markers */
+    --fretboard-nut:   #dddddd;    /* nut color */
+    --fretboard-dot:   #ffffff;    /* main dot fill */
+    --fretboard-tonic: #e4a7bf;    /* unused now */
+    --fretboard-tonic-edge: #ff0000; /* root-note stroke (red) */
   }
 
   html, body { height: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -37,10 +43,15 @@
                  "Segoe UI Symbol", "Noto Music", "Apple Symbols", sans-serif;
     background: var(--bg); color: var(--text); padding: 24px;
   }
+
+  /* =========================
+     HEADINGS & BASIC LAYOUT
+     ========================= */
   h1 { font-size:1.6rem; font-weight:600; margin:0 0 8px; }
   h2 { font-size:1rem; font-weight:400; margin:0 0 16px; color:var(--muted); }
   .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 
+  /* Buttons */
   button {
     padding:12px 20px; border-radius:var(--radius); border:1px solid var(--accent);
     background:var(--card-bg); color:var(--text); cursor:pointer; font-size:1.1rem;
@@ -50,7 +61,10 @@
   button.primary { background:var(--accent); color:#000; font-weight:700; }
   button.primary:hover { background:var(--accent-hover); color:#111; }
 
-  /* Unified panel style for main result and fretboard */
+  /* =========================
+     PANEL SHARED STYLING
+     - Used by main result + diagram
+     ========================= */
   .panel {
     margin-top:20px; padding: var(--result-pad); font-size: var(--result-font); font-weight:600;
     background:var(--card-bg); border:2px solid var(--accent); border-radius:var(--radius);
@@ -58,7 +72,7 @@
     box-shadow:0 0 12px rgba(255,255,255,.15);
   }
 
-  /* Main result panel */
+  /* Main result panel content */
   .result {
     display:flex; flex-direction:column; justify-content:center; align-items:center;
     text-align:center; line-height:1.4;
@@ -69,7 +83,7 @@
   .result .meta  { color: #888; font-weight: normal; font-size: 0.9em; }
   .result .label { color: #bbb; font-weight: normal; }
 
-  /* Inline timer at the bottom of the result panel */
+  /* Inline timer readout inside result panel */
   .result .timer-inline {
     margin-top: 10px;
     font-size: 1.15rem;
@@ -77,13 +91,17 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Fretboard diagram panel (shares .panel) */
+  /* =========================
+     FRETBOARD DIAGRAM PANEL
+     ========================= */
   .diagram {}
   .diagram.hidden { display:none; }
   .diagram .wrap { width:100%; }
   .diagram svg { width: 100%; height: auto; display:block; }
 
-  /* Filters panel */
+  /* =========================
+     FILTERS PANEL
+     ========================= */
   .filters {
     margin-top: 12px; background: var(--card-bg); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 14px;
@@ -96,7 +114,7 @@
   .filters-col header { display:flex; align-items:center; justify-content:space-between; }
   .filters-col h3 { margin:0; font-size:1rem; font-weight:600; }
 
-  /* Tuned widths to avoid overlap */
+  /* Column widths tuned to prevent wrapping/overlap at desktop sizes */
   .filters-col.strings { flex: 0 0 140px; }
   .filters-col.notes   { flex: 0 0 180px; }
   .filters-col.sizes   { flex: 0 0 140px; }
@@ -120,7 +138,9 @@
   .pill input { display:none; }
   .pill.active { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
 
-  /* Options */
+  /* =========================
+     OPTIONS PANEL
+     ========================= */
   .options { margin-top:12px; background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); padding:14px;
              width:min(100%, var(--filters-maxw)); margin-inline:auto; box-sizing:border-box; }
   .options.hidden { display:none; }
@@ -144,26 +164,70 @@
 
   @media (max-width:1100px) { .filters-col.scales { min-width:min(100%,520px); flex:1 1 520px; } }
   @media (max-width:600px)  { .filters-col.strings, .filters-col.notes, .filters-col.sizes, .filters-col.scales { flex:1 1 100%; min-width:0; } }
+  /* ==== Help / Instructions modal ========================================= */
+  .modal {
+    position: fixed; inset: 0; display: none; z-index: 9999;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,.55);
+  }
+  .modal.open { display: flex; }
+
+  .modal .sheet {
+    width: min(860px, 92vw); max-height: 86vh; overflow:auto;
+    background: var(--card-bg);
+    color: var(--text);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 40px rgba(0,0,0,.6);
+  }
+
+  .modal .sheet header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+  }
+  .modal .sheet header h3 {
+    margin:0; font-size:1.2rem; font-weight:700;
+  }
+  .modal .sheet header button {
+    padding: 6px 10px; font-size:.95rem;
+  }
+
+  .modal .sheet .content {
+    padding: 16px; line-height: 1.55; font-weight: 400; font-size: 1rem;
+  }
+  .modal .sheet .content h4 { margin: 16px 0 6px; font-size:1.05rem; }
+  .modal .sheet .content p,
+  .modal .sheet .content li { color: var(--muted); }
+  .modal .sheet .content code { background:#1b1b1b; padding:2px 6px; border-radius:6px; }
 </style>
 
-<h1>The Rolodex From Hades [Demo Version]</h1>
-<h2>A systematic and gamified approach to learning to improvise with intervallic patterns inspired by musical visionaries, including Nicolas Slonimsky, Allan Holdsworth and Wayne Krantz.</h2>
+<!-- ======================================================
+     HEADER + TOP-LEVEL ACTIONS
+     ====================================================== -->
+<h1>The Rolodex From Hades [Version 1.4]</h1>
+<h2>The "rolodex" offers a systematic and gamified approach to help musicians learn to improvise. The material is derived from a logical system of intervallic sequence organization. It bears similarities to pitch-class set theory and particularly draws inspiration from two musical visionaries: Allan Holdsworth and Wayne Krantz. The tool - in addition to comprehensively generating scales and intervallic patterns - records the musician's progress. These charachteristics combine to help musicians internalize the presented material and devlop valuable skills in executing, thinking about and applying scales in harmonic and melodic contexts.</h2>
 
 <div class="row">
   <button id="pickBtn" class="primary"><b>Generate</b></button>
   <button id="filtersBtn">Filters</button>
   <button id="optionsBtn">Options</button>
+  <button id="helpBtn" title="How this app works">Instructions</button>
 </div>
-
-<!-- Main print panel -->
+<!-- ======================================================
+     MAIN RESULT PANEL (clickable to Generate)
+     ====================================================== -->
 <div id="out" class="panel result">—</div>
 
-<!-- Fretboard diagram panel (hidden for “Other Instruments”) -->
+<!-- ======================================================
+     FRETBOARD DIAGRAM PANEL (hidden for “Other Instruments”)
+     ====================================================== -->
 <div id="diagramCard" class="panel diagram hidden">
   <div class="wrap" id="fretSvgWrap"></div>
 </div>
 
-<!-- Filters -->
+<!-- ======================================================
+     FILTERS PANEL (Strings / Notes / Size / Scale)
+     ====================================================== -->
 <div id="filters" class="filters hidden">
   <div class="filters-top">
     <button id="resetBtn" type="button" title="Reset all filters to default">Reset All</button>
@@ -188,9 +252,35 @@
   </div>
 </div>
 
-<!-- Options -->
+<!-- ======================================================
+     OPTIONS PANEL (Mode/Instrument, Fret markers, Drone, Timer, SRS)
+     ====================================================== -->
 <div id="options" class="options hidden">
   <div class="options-grid">
+
+    <!-- Data Source (CSV import) -->
+    <div class="opt-col">
+      <h3>Data Source</h3>
+      <div class="field">
+        <label>Source</label>
+        <label><input type="radio" name="datasrc" value="holdsworth"> Holdsworth subset</label>
+        <label><input type="radio" name="datasrc" value="csv"> Imported CSV (2048)</label>
+      </div>
+      <div class="field">
+        <label>Import CSV</label>
+        <button id="csvLoadBtn" type="button">Load 2048 CSV…</button>
+        <input id="csvFile" type="file" accept=".csv,text/csv" style="display:none">
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <span id="dataStatus" class="muted">Holdsworth subset active</span>
+      </div>
+      <div class="field">
+        <label>Manage</label>
+        <button id="csvClearBtn" type="button">Clear imported</button>
+        <button id="csvExportBtn" type="button">Export current JSON</button>
+      </div>
+    </div>
 
     <!-- Mode & Instrument -->
     <div class="opt-col">
@@ -238,7 +328,7 @@
           <label><input id="diagEnable" type="checkbox"> Show fretboard diagram</label>
         </div>
 
-        <!-- NEW: Fret marker controls -->
+        <!-- Fret markers (under-board markers; controlled by diagram toggle) -->
         <div id="markerControls" style="display:none;">
           <div class="field">
             <label>Fret markers</label>
@@ -256,7 +346,6 @@
             <label><input id="markerNums" type="checkbox"> Show 3,5,7,9,12…</label>
           </div>
         </div>
-        <!-- /NEW -->
       </div>
     </div>
 
@@ -315,9 +404,73 @@
 
   </div>
 </div>
+<!-- ==== Instructions Modal (hidden by default) ======================= -->
+<div id="helpModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="sheet">
+    <header>
+      <h3 id="helpTitle">How to Use The Rolodex From Hades (Demo)</h3>
+      <button id="helpCloseBtn" type="button" title="Close">Close</button>
+    </header>
+    <div class="content">
+      <p>This short guide explains the basic workflow and what each control does.</p>
 
+      <h4>Generate</h4>
+      <ul>
+        <li><b>Generate</b> selects a note and a scale from the active filters and prints it in the main panel.</li>
+        <li>If <i>Show fretboard diagram</i> is on, the diagram updates too.</li>
+        <li>Press the <b>spacebar</b> anywhere to generate again (unless you’re typing in a field).</li>
+      </ul>
+
+      <h4>Filters</h4>
+      <ul>
+        <li>Use the <b>Strings / Notes / Sizes / Scales</b> lists to control what’s eligible for selection.</li>
+        <li>Each group has an <b>All/None</b> toggle. <i>Reset All</i> restores defaults.</li>
+      </ul>
+
+      <h4>Options → Mode & Instrument</h4>
+      <ul>
+        <li><b>Mode</b>: Guitar/Bass unlocks the fretboard; Other Instruments hides it.</li>
+        <li><b>Preset / # Strings / Tuning</b>: define your instrument (String 1 = highest).</li>
+        <li><b>Fret Suggestion</b>: show suggested fret for the chosen string/note.</li>
+        <li><b>Max Fret</b> and <b>Prefer lower frets</b>: influence suggestions.</li>
+        <li><b>Diagram</b>: toggles the fretboard. When on:
+          <ul>
+            <li>Markers appear under the board (3, 5, 7, 9, 12…) with optional numbers.</li>
+            <li>Root notes have a red border; other notes are white with a light edge.</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h4>Options → Drone & Timer</h4>
+      <ul>
+        <li><b>Drone</b>: sine tone on the generated root (set octave/volume).</li>
+        <li><b>Timer</b>: pick a duration, optionally auto-start on each generate.</li>
+      </ul>
+
+      <h4>Practice (SRS)</h4>
+      <ul>
+        <li>Optional spaced repetition: when enabled, due items get priority.</li>
+        <li>Grade with <b>Again / Hard / Easy</b> to schedule next review.</li>
+      </ul>
+
+      <h4>2048 Pitch-Set CSV (Advanced)</h4>
+      <ul>
+        <li>In <b>Options → Data Source</b>, choose <b>Imported CSV</b> and click <b>Load 2048 CSV…</b>.</li>
+        <li>CSV columns should include: <code>Scale ID</code>, <code>Size</code>, <code>Intervals</code>, <code>Name</code>.</li>
+        <li>You can revert to the embedded Holdsworth subset anytime.</li>
+      </ul>
+
+      <p><i>Tip:</i> Nearly every setting is saved locally, so the app opens the way you left it.</p>
+    </div>
+  </div>
+</div>
+<!-- ================================================================== -->
 <script>
-/* ===================== Data ===================== */
+/* =====================================================
+   DATA: embedded Holdsworth subset + base lists
+   - EMBEDDED_SCALES is the working dataset (mutable in-place
+     when you import CSV).
+   ===================================================== */
 const EMBEDDED_SCALES = [
   {"id":"393","size":"5-note","name":"Pentatonic Major","intervals":"1-2-3-5-6"},
   {"id":"849","size":"6-note","name":"Messiaen Mode 1 (Whole Tone)","intervals":"1-2-3-#4-#5-b7"},
@@ -342,16 +495,22 @@ const EMBEDDED_SCALES = [
   {"id":"2004","size":"10-note","name":"Messiaen Mode 7","intervals":"1-b2-nat2-b3-nat4-#4-5-#5-6-7"},
   {"id":"2048","size":"12-note","name":"Chromatic","intervals":"1-b2-nat2-b3-nat3-nat4-#4-nat5-#5-6-b7-nat7"}
 ];
-const BASE_STRINGS = ["6","5","4","3","2","1"];
+
+const BASE_STRINGS = ["6","5","4","3","2","1"];               // UI labels for string selection
 const BASE_NOTES   = ["A","A#/Bb","B","C","C#/Db","D","D#/Eb","E","F","F#/Gb","G","G#/Ab"];
 const BASE_SIZES = [...new Set(EMBEDDED_SCALES.map(s=>s.size))].sort((a,b)=>{
+  // Sort by numeric size on the left (e.g., "7-note") then by text
   const A=parseInt((a.match(/^(\d+)/)||[])[1]||1e9,10);
   const B=parseInt((b.match(/^(\d+)/)||[])[1]||1e9,10);
   return A===B? a.localeCompare(b) : A-B;
 });
 
-/* ===================== Utilities ===================== */
+/* =====================================================
+   UTILITIES
+   ===================================================== */
 const $ = id => document.getElementById(id);
+
+/* Convert ASCII accidentals to musical symbols for nicer UI */
 function toMusical(str){
   if (!str) return str;
   return String(str)
@@ -361,6 +520,8 @@ function toMusical(str){
     .replace(/#(?=\d)/g,  '♯').replace(/b(?=\d)/g,  '♭')
     .replace(/\bnat\s*(\d)/gi, '♮$1');
 }
+
+/* Map note names to pitch classes (0–11) and parse input safely */
 const PC = {C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
 function parseNotePc(name){
   if(!name) return null;
@@ -369,7 +530,102 @@ function parseNotePc(name){
   return PC[n] ?? null;
 }
 
-/* Fit only the single-line row when needed */
+/* =====================================================
+   2048 PITCH-SET LOADER (CSV import)
+   - Adds window.injectPitchSets2048FromCSV / injectPitchSets2048
+   - Replaces EMBEDDED_SCALES in-place and rebuilds BASE_SIZES
+   ===================================================== */
+(function(){
+  /* Small CSV parser (handles quoted fields, escaped quotes) */
+  function ps_parseCSV(text){
+    const rows=[], row=[]; let cur="", inQ=false;
+    for(let i=0;i<text.length;i++){
+      const ch=text[i], nx=text[i+1];
+      if(inQ){
+        if(ch==='"' && nx==='"'){ cur+='"'; i++; }
+        else if(ch==='"'){ inQ=false; }
+        else { cur+=ch; }
+      } else {
+        if(ch==='"'){ inQ=true; }
+        else if(ch===','){ row.push(cur); cur=""; }
+        else if(ch==='\r'){ /* ignore */ }
+        else if(ch==='\n'){ row.push(cur); rows.push(row.slice()); row.length=0; cur=""; }
+        else { cur+=ch; }
+      }
+    }
+    row.push(cur); rows.push(row.slice());
+    // Trim trailing blank lines
+    while(rows.length && rows[rows.length-1].every(c=>String(c).trim()==="")) rows.pop();
+    return rows;
+  }
+
+  /* Core: replace working dataset + rebuild dependent lists */
+  function replaceEmbeddedScales(newArr){
+    EMBEDDED_SCALES.length = 0;
+    for(const o of newArr){ EMBEDDED_SCALES.push(o); }
+
+    const sizes = [...new Set(EMBEDDED_SCALES.map(s=>s.size))].sort((a,b)=>{
+      const A=parseInt((a.match(/^(\d+)/)||[])[1]||1e9,10);
+      const B=parseInt((b.match(/^(\d+)/)||[])[1]||1e9,10);
+      return A===B? a.localeCompare(b) : A-B;
+    });
+    BASE_SIZES.length = 0;
+    for(const s of sizes){ BASE_SIZES.push(s); }
+
+    // Reset selections to the new list and refresh filters/UI
+    state.selected.sizes  = new Set(BASE_SIZES);
+    state.selected.scales = new Set(EMBEDDED_SCALES.map(s=>s.id));
+    renderFilters();
+    saveStateThrottled && saveStateThrottled();
+  }
+
+  /* Public helpers (callable from UI wiring) */
+  window.injectPitchSets2048FromCSV = function(csvText){
+    const rows = ps_parseCSV(csvText);
+    if(!rows.length){ console.warn("CSV was empty."); return; }
+
+    const hdr = rows[0].map(h=>String(h||"").trim().toLowerCase());
+    const idx = (name, fallback) => {
+      const i = hdr.indexOf(name); return i>=0? i : fallback;
+    };
+    const idCol   = idx("scale id", 0);
+    const sizeCol = idx("size", 1);
+    const intCol  = idx("intervals", 2);
+    const nameCol = idx("name", 3);
+
+    const out=[];
+    for(let r=1;r<rows.length;r++){
+      const row = rows[r];
+      const id  = String(row[idCol]??"").trim();
+      const szv = String(row[sizeCol]??"").trim();
+      const iv  = String(row[intCol]??"").trim();
+      const nm  = String(row[nameCol]??"").trim() || "Nameless";
+      if(!id || !iv) continue;
+
+      // Normalize size to "N-note" when possible
+      let sizeLabel = szv;
+      const n = parseInt(szv,10);
+      if(!isNaN(n)) sizeLabel = `${n}-note`;
+      else if(!/^\d+-note$/i.test(szv)) sizeLabel = szv || "unknown";
+
+      out.push({ id, size: sizeLabel, name: nm, intervals: iv });
+    }
+    if(!out.length){ console.warn("No usable rows."); return; }
+
+    replaceEmbeddedScales(out);
+    console.log(`Replaced with ${out.length} pitch sets.`);
+  };
+
+  window.injectPitchSets2048 = function(arr){
+    if(!Array.isArray(arr) || !arr.length){ console.warn("Bad array"); return; }
+    replaceEmbeddedScales(arr);
+    console.log(`Replaced with ${arr.length} pitch sets.`);
+  };
+})();
+
+/* =====================================================
+   RESPONSIVE TEXT FITTING (for single-line rows)
+   ===================================================== */
 function fitLines(){
   const out = $("out");
   const minSize = 12;
@@ -384,10 +640,18 @@ function fitLines(){
   });
 }
 
-/* ===================== Self-healing persistence ===================== */
+/* =====================================================
+   PERSISTENCE (state + SRS) and CSV source flags
+   ===================================================== */
 const STORAGE_KEY = 'rolodex_state_v4';
 const SRS_KEY = 'rolodex_srs_v2';
 
+/* CSV-related keys + original snapshot for easy restore */
+const CSV_KEY  = 'rolodex_ps2048_csv';
+const CSV_FLAG = 'rolodex_ps_source';          // 'csv' | 'holdsworth'
+const EMBEDDED_SCALES_ORIG = EMBEDDED_SCALES.slice();
+
+/* Snapshot state to JSON for localStorage */
 function stateToJSON(s){
   return {
     mode: s.mode,
@@ -406,15 +670,19 @@ function stateToJSON(s){
     timer: { dur:s.timer.dur, auto:s.timer.auto },
     srs: { enabled:s.srs.enabled },
 
-    /* NEW: diagram marker prefs */
+    /* Diagram marker prefs */
     markers: { enable: s.markers.enable, shape: s.markers.shape, nums: s.markers.nums }
   };
 }
+
+/* Defensive Set construction */
 function safeSet(v, fallbackArr){
   if (v instanceof Set) return new Set(v);
   if (Array.isArray(v)) return new Set(v);
   return new Set(fallbackArr);
 }
+
+/* Load persisted state (with safe fallbacks) */
 function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -451,15 +719,17 @@ function loadState(){
       },
       srs: { enabled: !!x.srs?.enabled, map: {} },
 
-      /* NEW: diagram marker prefs with safe fallbacks */
+      /* Diagram markers */
       markers: {
-        enable: x.markers?.enable !== false,     // default true
+        enable: x.markers?.enable !== false,
         shape: (x.markers?.shape === 'square') ? 'square' : 'dot',
         nums: !!x.markers?.nums
       }
     };
   }catch{ return null; }
 }
+
+/* Throttled save to localStorage */
 function saveStateThrottled(){
   clearTimeout(saveStateThrottled._t);
   saveStateThrottled._t = setTimeout(()=>{
@@ -467,7 +737,9 @@ function saveStateThrottled(){
   }, 120);
 }
 
-/* ===================== App State ===================== */
+/* =====================================================
+   APP STATE (defaults when no saved state)
+   ===================================================== */
 let state = loadState() || {
   mode: 'guitar',
   selected: {
@@ -484,12 +756,12 @@ let state = loadState() || {
   drone: { enabled:false, octave:3, volume:0.25 },
   timer: { dur:60, auto:false },
   srs: { enabled:false, map:{} },
-
-  /* NEW */
   markers: { enable:true, shape:'dot', nums:false }
 };
 
-/* ===================== Filters UI (unchanged) ===================== */
+/* =====================================================
+   FILTERS UI RENDER + BINDING
+   ===================================================== */
 function groupTotals(group){
   if (group==='strings') return BASE_STRINGS.length;
   if (group==='notes')   return BASE_NOTES.length;
@@ -498,11 +770,13 @@ function groupTotals(group){
   return 0;
 }
 function isAllSelected(group){ return state.selected[group].size === groupTotals(group); }
+
 function updateGroupToggleLabels(){
   document.querySelectorAll('.group-toggle').forEach(b=>{
     const g=b.dataset.group; b.textContent = isAllSelected(g)?'None':'All';
   });
 }
+
 function renderFilters(){
   $("stringsList").innerHTML = BASE_STRINGS.map(v=>`
     <label><input type="checkbox" value="${v}" ${state.selected.strings.has(v)?"checked":""}><span>${v}</span></label>
@@ -521,9 +795,12 @@ function renderFilters(){
   $("stringsCol").style.display = state.mode==='guitar' ? '' : 'none';
   updateGroupToggleLabels();
 }
+
+/* Checkbox changes (delegated) */
 document.addEventListener("change",(e)=>{
   const t=e.target;
   if(!(t instanceof HTMLInputElement)) return;
+
   if(t.closest("#stringsList")){
     t.checked? state.selected.strings.add(t.value) : state.selected.strings.delete(t.value);
     saveStateThrottled(); updateGroupToggleLabels();
@@ -543,6 +820,8 @@ document.addEventListener("change",(e)=>{
     saveStateThrottled(); updateGroupToggleLabels();
   }
 });
+
+/* Group “All/None” toggles */
 document.querySelectorAll(".group-toggle").forEach(btn=>{
   btn.addEventListener("click",()=>{
     const g=btn.dataset.group, set=state.selected[g];
@@ -558,6 +837,8 @@ document.querySelectorAll(".group-toggle").forEach(btn=>{
     renderFilters();
   });
 });
+
+/* Reset to defaults */
 $("resetBtn").addEventListener("click", ()=>{
   state.selected = {
     strings: new Set(BASE_STRINGS),
@@ -569,7 +850,7 @@ $("resetBtn").addEventListener("click", ()=>{
   renderFilters();
 });
 
-/* Robust Filters toggle */
+/* Filters panel toggle (with a delegated fallback for resilience) */
 const filtersBtnEl = $("filtersBtn");
 if (filtersBtnEl) {
   filtersBtnEl.addEventListener("click", (e) => {
@@ -579,7 +860,6 @@ if (filtersBtnEl) {
     if (panel) panel.classList.toggle("hidden");
   });
 }
-/* Delegated fallback (self-healing) */
 document.addEventListener("click", (e) => {
   const btn = e.target.closest && e.target.closest("#filtersBtn");
   if (!btn) return;
@@ -589,13 +869,53 @@ document.addEventListener("click", (e) => {
   if (panel) panel.classList.toggle("hidden");
 }, { capture: true });
 
-/* Options toggle */
+/* Options panel toggle */
 $("optionsBtn").addEventListener("click", (e)=> {
   e.preventDefault(); e.stopPropagation();
   $("options").classList.toggle("hidden");
 });
+    /* ==== Instructions modal wiring ===================================== */
+    const helpBtn = $("helpBtn");
+    const helpModal = $("helpModal");
+    const helpCloseBtn = $("helpCloseBtn");
 
-/* ===================== Options & instrument ===================== */
+    function openHelp(){
+      if (!helpModal) return;
+      helpModal.classList.add("open");
+      // focus the close button for accessibility
+      helpCloseBtn && helpCloseBtn.focus();
+    }
+
+    function closeHelp(){
+      if (!helpModal) return;
+      helpModal.classList.remove("open");
+    }
+
+    helpBtn && helpBtn.addEventListener("click", (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      openHelp();
+    });
+
+    helpCloseBtn && helpCloseBtn.addEventListener("click", (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      closeHelp();
+    });
+
+    // close on Escape
+    document.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape" && helpModal && helpModal.classList.contains("open")) {
+        closeHelp();
+      }
+    });
+
+    // click outside the sheet to close
+    helpModal && helpModal.addEventListener("click", (e)=>{
+      if (e.target === helpModal) closeHelp();
+    });
+    /* ==================================================================== */
+/* =====================================================
+   OPTIONS & INSTRUMENT CONTROLS
+   ===================================================== */
 document.querySelectorAll('input[name="mode"]').forEach(r=>{
   if(r.value===state.mode) r.checked=true;
   r.addEventListener("change", ()=>{
@@ -608,12 +928,14 @@ document.querySelectorAll('input[name="mode"]').forEach(r=>{
 });
 $("instPanel").style.display = state.mode==='guitar' ? '' : 'none';
 
+/* Preset tunings for convenience */
 const PRESETS = {
   gtr6: {count:6, tuning:['E','B','G','D','A','E']},
   bass4:{count:4, tuning:['G','D','A','E']},
   gtr7: {count:7, tuning:['E','B','G','D','A','E','B']},
   gtr8: {count:8, tuning:['E','B','G','D','A','E','B','F#']}
 };
+
 function renderTuningGrid(){
   const n = state.instrument.count;
   const grid = $("tuningGrid"); grid.innerHTML='';
@@ -628,6 +950,8 @@ function renderTuningGrid(){
     grid.appendChild(row);
   }
 }
+
+/* Preset selector */
 $("presetSel").addEventListener("change", ()=>{
   const v = $("presetSel").value;
   if (v==='custom') return;
@@ -639,6 +963,8 @@ $("presetSel").addEventListener("change", ()=>{
 });
 $("numStrings").value = state.instrument.count;
 renderTuningGrid();
+
+/* Manual string-count change */
 $("numStrings").addEventListener("change", ()=>{
   const val = Math.max(1, Math.min(12, parseInt($("numStrings").value||'6',10)));
   state.instrument.count = val;
@@ -647,12 +973,16 @@ $("numStrings").addEventListener("change", ()=>{
   $("presetSel").value = 'custom';
   renderTuningGrid(); saveStateThrottled();
 });
+
+/* Misc options toggles */
 $("showFret").checked = state.showFret;
 $("showFret").addEventListener("change", ()=> { state.showFret = $("showFret").checked; saveStateThrottled(); });
 $("maxFret").value = String(state.maxFret);
 $("maxFret").addEventListener("change", ()=> { state.maxFret = parseInt($("maxFret").value,10); saveStateThrottled(); });
 $("preferLow").checked = state.preferLow;
 $("preferLow").addEventListener("change", ()=> { state.preferLow = $("preferLow").checked; saveStateThrottled(); });
+
+/* Diagram & marker controls visibility */
 $("diagEnable").checked = state.diagEnable;
 $("diagEnable").addEventListener("change", ()=> {
   state.diagEnable = $("diagEnable").checked;
@@ -660,7 +990,7 @@ $("diagEnable").addEventListener("change", ()=> {
   saveStateThrottled(); updateDiagramVisibility();
 });
 
-/* NEW: bind marker controls */
+/* Marker controls binding */
 $("markerControls").style.display = state.diagEnable ? '' : 'none';
 $("markersEnable").checked = state.markers.enable;
 $("markerShape").value = state.markers.shape;
@@ -669,7 +999,148 @@ $("markersEnable").addEventListener("change", ()=>{ state.markers.enable = $("ma
 $("markerShape").addEventListener("change", ()=>{ state.markers.shape  = $("markerShape").value;   saveStateThrottled(); });
 $("markerNums").addEventListener("change",  ()=>{ state.markers.nums   = $("markerNums").checked;  saveStateThrottled(); });
 
-/* ===================== Drone & Timer ===================== */
+/* =====================================================
+   CSV DATA SOURCE WIRING
+   - UI buttons/radios + localStorage hydration
+   ===================================================== */
+function _replaceScalesArray(arr){
+  // Internal helper to mirror the closure’s replace logic
+  EMBEDDED_SCALES.length = 0;
+  for (const o of arr) EMBEDDED_SCALES.push(o);
+
+  const sizes = [...new Set(EMBEDDED_SCALES.map(s=>s.size))].sort((a,b)=>{
+    const A=parseInt((a.match(/^(\d+)/)||[])[1]||1e9,10);
+    const B=parseInt((b.match(/^(\d+)/)||[])[1]||1e9,10);
+    return A===B? a.localeCompare(b) : A-B;
+  });
+  BASE_SIZES.length = 0;
+  sizes.forEach(s=>BASE_SIZES.push(s));
+
+  state.selected.sizes  = new Set(BASE_SIZES);
+  state.selected.scales = new Set(EMBEDDED_SCALES.map(s=>s.id));
+
+  renderFilters();
+  saveStateThrottled && saveStateThrottled();
+}
+
+/* Restore embedded list */
+function restoreEmbedded(){
+  const copy = EMBEDDED_SCALES_ORIG.map(x=>({ ...x }));
+  _replaceScalesArray(copy);
+}
+
+/* Label helper */
+function setDataStatus(msg){
+  const el = document.getElementById('dataStatus');
+  if (el) el.textContent = msg;
+}
+
+/* On load: set active source + hydrate CSV if previously chosen */
+(function initDataSource(){
+  const src = localStorage.getItem(CSV_FLAG) || 'holdsworth';
+  const radio = document.querySelector(`input[name="datasrc"][value="${src}"]`);
+  if (radio) radio.checked = true;
+
+  if (src === 'csv') {
+    const csv = localStorage.getItem(CSV_KEY);
+    if (csv && typeof window.injectPitchSets2048FromCSV === 'function') {
+      window.injectPitchSets2048FromCSV(csv);
+      setDataStatus('Imported CSV active');
+    } else {
+      localStorage.setItem(CSV_FLAG, 'holdsworth');
+      const r = document.querySelector('input[name="datasrc"][value="holdsworth"]');
+      if (r) r.checked = true;
+      setDataStatus('Holdsworth subset active');
+    }
+  } else {
+    setDataStatus('Holdsworth subset active');
+  }
+})();
+
+/* Wire buttons + radio group */
+(function wireCsvUi(){
+  const csvFileEl    = document.getElementById('csvFile');
+  const csvLoadBtn   = document.getElementById('csvLoadBtn');
+  const csvClearBtn  = document.getElementById('csvClearBtn');
+  const csvExportBtn = document.getElementById('csvExportBtn');
+
+  // Source radios
+  document.querySelectorAll('input[name="datasrc"]').forEach(r=>{
+    r.addEventListener('change', ()=>{
+      const val = document.querySelector('input[name="datasrc"]:checked')?.value || 'holdsworth';
+      if (val === 'csv') {
+        const cached = localStorage.getItem(CSV_KEY);
+        if (cached) {
+          window.injectPitchSets2048FromCSV && window.injectPitchSets2048FromCSV(cached);
+          localStorage.setItem(CSV_FLAG, 'csv');
+          setDataStatus('Imported CSV active');
+        } else if (csvLoadBtn) {
+          csvLoadBtn.click(); // prompt to pick a file
+        }
+      } else {
+        restoreEmbedded();
+        localStorage.setItem(CSV_FLAG, 'holdsworth');
+        setDataStatus('Holdsworth subset active');
+      }
+    });
+  });
+
+  // Load button -> file input
+  if (csvLoadBtn && csvFileEl) {
+    csvLoadBtn.addEventListener('click', ()=> csvFileEl.click());
+    csvFileEl.addEventListener('change', ()=>{
+      const file = csvFileEl.files && csvFileEl.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        const text = String(e.target.result || '');
+        if (typeof window.injectPitchSets2048FromCSV === 'function') {
+          window.injectPitchSets2048FromCSV(text);
+          localStorage.setItem(CSV_KEY, text);
+          localStorage.setItem(CSV_FLAG, 'csv');
+          const csvRadio = document.querySelector('input[name="datasrc"][value="csv"]');
+          if (csvRadio) csvRadio.checked = true;
+          setDataStatus('Imported CSV active');
+        } else {
+          console.warn('injectPitchSets2048FromCSV not found.');
+        }
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  // Clear imported dataset
+  if (csvClearBtn) {
+    csvClearBtn.addEventListener('click', ()=>{
+      localStorage.removeItem(CSV_KEY);
+      localStorage.setItem(CSV_FLAG, 'holdsworth');
+      restoreEmbedded();
+      const r = document.querySelector('input[name="datasrc"][value="holdsworth"]');
+      if (r) r.checked = true;
+      setDataStatus('Holdsworth subset active');
+    });
+  }
+
+  // Export currently active dataset (JSON)
+  if (csvExportBtn) {
+    csvExportBtn.addEventListener('click', ()=>{
+      try {
+        const blob = new Blob([JSON.stringify(EMBEDDED_SCALES, null, 2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'current_scales.json';
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.warn('Export failed', e);
+      }
+    });
+  }
+})();
+
+/* =====================================================
+   DRONE (Audio) & TIMER
+   ===================================================== */
 let audio = { ctx:null, gain:null, osc:null };
 function ensureAudio(){
   if(audio.ctx) return;
@@ -686,6 +1157,7 @@ function startDrone(freq){
 }
 function stopDrone(){ if(audio.osc){ try{audio.osc.stop();}catch{} audio.osc.disconnect(); audio.osc=null; } }
 function notePcToFreq(pc, octave){ const midi=(octave+1)*12+pc; return 440*Math.pow(2,(midi-69)/12); }
+
 $("droneEnable").checked = state.drone.enabled;
 $("droneEnable").addEventListener("change", ()=> { state.drone.enabled = $("droneEnable").checked; if(!state.drone.enabled) stopDrone(); saveStateThrottled(); });
 $("droneOct").value = String(state.drone.octave);
@@ -693,14 +1165,18 @@ $("droneOct").addEventListener("change", ()=> { state.drone.octave = parseInt($(
 $("droneVol").value = String(state.drone.volume);
 $("droneVol").addEventListener("input", ()=> { state.drone.volume = parseFloat($("droneVol").value); if(audio.gain) audio.gain.gain.value=state.drone.volume; saveStateThrottled(); });
 
+/* Timer control */
 let timer = { running:false, left:0, tid:null };
 $("timerDur").value = String(state.timer.dur);
 $("timerDur").addEventListener("change", ()=> { state.timer.dur = parseInt($("timerDur").value,10); saveStateThrottled(); });
 $("timerAuto").checked = state.timer.auto;
 $("timerAuto").addEventListener("change", ()=> { state.timer.auto = $("timerAuto").checked; saveStateThrottled(); });
 $("timerBtn").addEventListener("click", ()=> { if(timer.running) stopTimer(); else startTimer(state.timer.dur); });
-function fmt(sec){ const m=String(Math.floor(sec/60)).padStart(2,'0'), s=String(sec%60).padStart(2,'0'); return `${m}:${s}`; }
-function startTimer(secs){
+function fmt(sec){
+  const m = String(Math.floor(sec/60)).padStart(2,'0');
+  const s = String(sec%60).padStart(2,'0');
+  return `${m}:${s}`;
+}function startTimer(secs){
   stopTimer();
   timer.running=true; timer.left=secs;
   $("timerBtn").textContent='Stop';
@@ -726,7 +1202,9 @@ function updateInlineTimer(sec){
   el.textContent = (sec==null) ? '' : fmt(sec);
 }
 
-/* ===================== SRS ===================== */
+/* =====================================================
+   SRS (Spaced Repetition) MINIMAL IMPL
+   ===================================================== */
 function loadSRS(){ try{ const x=localStorage.getItem(SRS_KEY); return x? JSON.parse(x) : {}; }catch{return{};} }
 function saveSRS(){ try{ localStorage.setItem(SRS_KEY, JSON.stringify(state.srs.map)); }catch{} }
 function srsIntervals(box){ return [0,1,3,7,14,30][Math.max(0,Math.min(5,box))]; }
@@ -748,7 +1226,9 @@ $("againBtn").addEventListener("click", ()=>gradeCurrent('again'));
 $("hardBtn").addEventListener("click",  ()=>gradeCurrent('hard'));
 $("easyBtn").addEventListener("click",  ()=>gradeCurrent('easy'));
 
-/* ===================== Fret suggestion & Diagram ===================== */
+/* =====================================================
+   FRET SUGGESTION & DIAGRAM HELPERS
+   ===================================================== */
 function pickFretFor(noteVal, stringNum){
   const maxFret = state.maxFret;
   const preferLow = state.preferLow;
@@ -766,6 +1246,7 @@ function pickFretFor(noteVal, stringNum){
   return preferLow ? matches[0] : matches[matches.length-1];
 }
 
+/* Interval string → semitone offsets */
 const INTERVAL_TO_SEMITONE = {
   '1':0,'b2':1,'♭2':1,'nat2':2,'2':2,'#2':3,'♯2':3,'b3':3,'♭3':3,'3':4,'nat3':4,
   '4':5,'nat4':5,'#4':6,'♯4':6,'b5':6,'♭5':6,'nat5':7,'5':7,'#5':8,'♯5':8,'b6':8,'♭6':8,
@@ -775,7 +1256,11 @@ function intervalStringToSemis(ivlStr){
   return ivlStr.split('-').map(t => INTERVAL_TO_SEMITONE[t.trim()] ?? null).filter(v=>v!==null);
 }
 
-/* ===================== Diagram ===================== */
+/* =====================================================
+   FRETBOARD DIAGRAM RENDERER (SVG)
+   - All positions drawn inside the board (no open-string dots)
+   - Under-board fret markers live in a reserved gutter
+   ===================================================== */
 function drawFretboardDiagram(noteVal, scale, tuning, opts){
   const wrap = $("fretSvgWrap");
   wrap.innerHTML = "";
@@ -788,9 +1273,8 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
   const semis = intervalStringToSemis(scale.intervals);
 
   const W = 1000;
-  /* reserve a bottom gutter for fret markers (so they never collide) */
-  const BASE_H = Math.max(180, 50 + strings*28);
-  const GUTTER = 40;                 // under-board space
+  const BASE_H = Math.max(180, 50 + strings*28);  // board scales with string count
+  const GUTTER = 40;                              // bottom gutter so markers never collide
   const H = BASE_H + GUTTER;
 
   const svgns = "http://www.w3.org/2000/svg";
@@ -798,14 +1282,14 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
 
-  /* ---------- Board geometry (flush edges) ---------- */
+  /* Board geometry */
   const PAD_X = 16;
   const PAD_Y = 16;
 
   const boardLeft   = PAD_X;
   const boardRight  = W - PAD_X;
   const boardTop    = PAD_Y;
-  const boardBottom = H - PAD_Y - GUTTER;
+  const boardBottom = H - PAD_Y - GUTTER;      // leave room for markers
   const boardWidth  = boardRight - boardLeft;
   const boardHeight = boardBottom - boardTop;
 
@@ -813,7 +1297,7 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
   const fretsCount = frets;
   const fretW = (boardWidth - nutW) / fretsCount;
 
-  // styles
+  /* Visual styles */
   const style       = getComputedStyle(document.documentElement);
   const gridColor   = style.getPropertyValue('--fretboard-grid').trim()    || '#cfcfcf';
   const markerCol   = style.getPropertyValue('--fretboard-marker').trim()  || style.getPropertyValue('--fretboard-inlay').trim() || '#8a8a8a';
@@ -822,7 +1306,7 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
   const tonicEdge   = style.getPropertyValue('--fretboard-tonic-edge').trim() || '#ff0000';
   const regularEdge = '#e5e5e5';
 
-  // nut (flush rectangle)
+  /* Nut (left), right boundary, and intermediate frets */
   const nutRect = document.createElementNS(svgns, "rect");
   nutRect.setAttribute("x", boardLeft);
   nutRect.setAttribute("y", boardTop);
@@ -831,7 +1315,6 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
   nutRect.setAttribute("fill", nutColor);
   svg.appendChild(nutRect);
 
-  // bridge/end (flush right edge)
   const bridgeLine = document.createElementNS(svgns, "line");
   bridgeLine.setAttribute("x1", boardRight);
   bridgeLine.setAttribute("y1", boardTop);
@@ -841,7 +1324,6 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
   bridgeLine.setAttribute("stroke-width", 2.5);
   svg.appendChild(bridgeLine);
 
-  // intermediate frets (exclude nut & right edge)
   for (let f = 1; f < fretsCount; f++) {
     const x = boardLeft + nutW + f * fretW;
     const line = document.createElementNS(svgns, "line");
@@ -852,7 +1334,7 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
     svg.appendChild(line);
   }
 
-  // strings (flush left/right)
+  /* Strings (horizontal lines) */
   for (let s = 0; s < strings; s++) {
     const y = boardTop + s * (boardHeight / Math.max(1, (strings - 1)));
     const line = document.createElementNS(svgns, "line");
@@ -865,9 +1347,9 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
     svg.appendChild(line);
   }
 
-  // notes (scale tones) — fretted only
+  /* Scale dots (fretted only). Roots get a thicker red stroke. */
   for (let s = 0; s < strings; s++) {
-    const openPc = parseNotePc(tuning[strings - 1 - s]); // bottom = lowest string
+    const openPc = parseNotePc(tuning[strings - 1 - s]); // bottom row is lowest string
     const y = boardTop + s * (boardHeight / Math.max(1, (strings - 1)));
     for (let f = 1; f <= fretsCount; f++) {
       const pcHere = (openPc + f) % 12;
@@ -886,9 +1368,9 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
     }
   }
 
-  // NEW: Fret-number markers under the board (3,5,7,9,12,15,17,19,21,24)
+  /* Under-board fret markers: 3,5,7,9,12,15,17,19,21,24 (double at 12/24) */
   if (state.markers.enable) {
-    const markerY = boardBottom + Math.round(GUTTER * 0.66); // comfortably inside gutter
+    const markerY = boardBottom + Math.round(GUTTER * 0.66); // visually centered in the gutter
     const singles = [3,5,7,9,15,17,19,21];
     const dbls    = [12,24];
 
@@ -915,7 +1397,6 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
       }
     };
 
-    // singles
     singles.forEach(f=>{
       if (f>fretsCount) return;
       const cx = boardLeft + nutW + (f - 0.5) * fretW;
@@ -933,7 +1414,6 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
       }
     });
 
-    // double markers at 12 (and 24 if present)
     dbls.forEach(f=>{
       if (f>fretsCount) return;
       const cx = boardLeft + nutW + (f - 0.5) * fretW;
@@ -957,11 +1437,14 @@ function drawFretboardDiagram(noteVal, scale, tuning, opts){
   $("fretSvgWrap").appendChild(svg);
 }
 
+/* Diagram panel visibility based on mode + toggle */
 function updateDiagramVisibility(){
   $("diagramCard").classList.toggle("hidden", !(state.diagEnable && state.mode==='guitar'));
 }
 
-/* ===================== Generate ===================== */
+/* =====================================================
+   GENERATE: pick random string/note/scale (+ SRS priority)
+   ===================================================== */
 let current = { string:null, note:null, scale:null };
 
 function pick(){
@@ -972,7 +1455,7 @@ function pick(){
     $("out").innerHTML = '<div class="line">No items selected.</div>'; return;
   }
 
-  // SRS priority
+  // SRS: prefer “due” items if enabled
   let scaleChoice = null;
   if(state.srs.enabled){
     const now=Date.now();
@@ -994,7 +1477,7 @@ function pick(){
   const ivlStr  = toMusical(scaleChoice.intervals);
   const metaStr = `(ID: ${scaleChoice.id}, Size: ${scaleChoice.size})`;
 
-  // Compute fret (top line)
+  // Optional fret suggestion (top line)
   const fret = (state.mode==='guitar' && state.showFret && stringVal)
       ? pickFretFor(noteVal, parseInt(stringVal,10))
       : null;
@@ -1015,13 +1498,13 @@ function pick(){
   `;
   fitLines();
 
-  /* Drone */
+  // Drone
   if(state.drone.enabled){
     const pc = parseNotePc(noteVal);
     if (pc!=null){ const freq = notePcToFreq(pc, state.drone.octave); startDrone(freq); }
   } else { stopDrone(); }
 
-  /* Timer: only auto-start if enabled */
+  // Timer
   if (state.timer.auto) {
     startTimer(state.timer.dur);
   } else {
@@ -1029,13 +1512,13 @@ function pick(){
     updateInlineTimer(null);
   }
 
-  /* Diagram */
+  // Diagram
   updateDiagramVisibility();
   if (state.diagEnable && state.mode==='guitar'){
     drawFretboardDiagram(
       noteVal,
       scaleChoice,
-      state.instrument.tuning.slice(0,state.instrument.count).reverse(),
+      state.instrument.tuning.slice(0,state.instrument.count).reverse(), // reverse so bottom row is lowest
       {maxFrets: Math.max(12, Math.min(24, state.maxFret))}
     );
   }
@@ -1046,7 +1529,7 @@ function pick(){
 /* Buttons & quick actions */
 $("pickBtn").addEventListener("click", pick);
 
-/* Spacebar to Generate unless typing */
+/* Spacebar to Generate (unless typing in inputs) */
 document.addEventListener("keydown", (e)=>{
   const tag = (e.target && e.target.tagName) ? e.target.tagName : "";
   if ((e.code === "Space" || e.key === " ") && !/INPUT|TEXTAREA|SELECT/.test(tag)) {
@@ -1064,16 +1547,17 @@ outEl.addEventListener("touchend", function(e){ e.preventDefault(); pick(); }, {
 window.addEventListener("resize", fitLines);
 window.addEventListener("orientationchange", () => setTimeout(fitLines, 60));
 
-/* ===================== SRS boot ===================== */
+/* =====================================================
+   SRS BOOTSTRAP + INITIAL RENDER
+   ===================================================== */
 state.srs.map = loadSRS();
 function srsDueCountBoot(){ const now=Date.now(); let n=0; for(const id in state.srs.map){ if(state.srs.map[id].due<=now) n++; } $("dueCount").textContent=n; }
 srsDueCountBoot();
 
-/* ===== Render filters and finalize ===== */
 renderFilters();
 updateDiagramVisibility();
 
-/* ===== Timer helpers need inline output ===== */
+/* Timer helper (duplicated where needed) */
 function updateInlineTimer(sec){
   const el = document.querySelector('#out .timer-inline');
   if(!el) return;
