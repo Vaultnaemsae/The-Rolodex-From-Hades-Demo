@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>The Rolodex From Hades [Demo Ver 1.8]</title>
+<title>The Rolodex From Hades [Demo Ver 1.9]</title>
 
 <style>
   :root{
@@ -90,12 +90,32 @@
   .modal .sheet .content h4{margin:16px 0 6px;font-size:1.05rem}
   .modal .sheet .content p,.modal .sheet .content li{color:var(--muted)}
   .modal .sheet .content code{background:#1b1b1b;padding:2px 6px;border-radius:6px}
+
+  /* Beat visualizer */
+  .beats{ display:flex; gap:8px; justify-content:center; margin-top:8px; }
+  .beats .cell{ width:16px; height:10px; border-radius:4px; background:#fff; opacity:.3; transition:transform .08s, opacity .08s; }
+  .beats .cell.active{ transform:scale(1.12); opacity:1; }
+  /* Bar grouping + downbeat contrast */
+  /* Bar grouping + downbeat contrast */
+  .beats .cell.bar-end { margin-right: 2px; }
+
+  .beats .cell.downbeat {
+    background: cyan;          /* cyan downbeats */
+    opacity: .55;
+  }
+
+  .beats .cell.active.downbeat {
+    transform: scale(1.18);
+    opacity: 1;
+    box-shadow: 0 0 8px cyan, 0 0 14px cyan;  /* short glow */
+  }
 </style>
 </head>
 <body>
 
-<h1>The Rolodex From Hades [Demo Ver 1.8]</h1>
-<h2>The "rolodex" offers a systematic and gamified approach to help musicians learn to improvise. The material is derived from a logical system of intervallic sequence organization. It bears similarities to pitch-class set theory and particularly draws inspiration from two musical visionaries: Allan Holdsworth and Wayne Krantz. The tool — in addition to generating up to 2,048 scales and intervallic patterns — records the musician's progress. These characteristics combine to help musicians internalize the presented material and devlop valuable skills in memorizing, recalling and applying scales harmonically and melodically.</h2>
+<h1>The Rolodex From Hades [Demo Ver 1.9]</h1>
+<h2>The "rolodex" offers a systematic and gamified approach to help musicians learn to improvise. The material is derived from a logical system of intervallic sequence organization. It bears similarities to pitch-class set theory and particularly draws inspiration from two musical visionaries: Allan Holdsworth and Wayne Krantz. The tool — in addition to comprehensively generating scales and intervallic patterns — records the musician's progress. These characteristics combine to help musicians internalize the presented material and devlop valuable skills in memorizing, recalling and applying scales harmonically and melodically.</h2>
+
 <div class="row">
   <div class="left-buttons">
     <button id="pickBtn" class="primary"><b>Generate</b></button>
@@ -256,26 +276,35 @@
       </div>
     </div>
 
-    <div class="field">
-      <label>Metronome</label>
-      <label><input id="metroEnable" type="checkbox"> Use bars/beats instead of seconds</label>
-    </div>
-    <div class="field">
-      <label>BPM</label>
-      <input id="metroBpm" type="number" min="20" max="300" value="120" style="width:90px">
-    </div>
-    <div class="field">
-      <label>Beats / Bar</label>
-      <select id="metroBeatsPerBar">
-        <option value="2">2</option><option value="3">3</option><option value="4" selected>4</option>
-        <option value="5">5</option><option value="7">7</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Bars / Prompt</label>
-      <select id="metroBarsPerPrompt">
-        <option value="1" selected>1</option><option value="2">2</option><option value="4">4</option><option value="8">8</option>
-      </select>
+    <div class="opt-col">
+      <h3>Metronome</h3>
+      <div class="field">
+        <label>Enable</label>
+        <label><input id="metroEnable" type="checkbox"> Use bars/beats instead of seconds</label>
+      </div>
+      <div class="field">
+        <label>BPM</label>
+        <input id="metroBpm" type="number" min="20" max="300" value="120" style="width:90px">
+      </div>
+      <div class="field">
+        <label>Beats per bar</label>
+        <select id="metroBeatsPerBar">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+          <option value="7">7</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Bars</label>
+        <select id="metroBarsPerPrompt">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="4">4</option>
+          <option value="8">8</option>
+        </select>
+      </div>
     </div>
 
     <div class="opt-col">
@@ -393,8 +422,9 @@ function toMusical(str){
 const PC={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
 function parseNotePc(name){
   if(!name) return null;
-  let n=String(name).split('/')[0].trim().replace('♯','#').replace('♭','b').toUpperCase();
-  if(!/^[A-G](#|B)?$/.test(n)) n=n.charAt(0);
+  let n = String(name).split('/')[0].trim()
+    .replace('♯','#').replace('♭','b');
+  n = n[0]?.toUpperCase() + (n[1] === '#' ? '#' : (n[1] === 'b' ? 'b' : ''));
   return PC[n] ?? null;
 }
 
@@ -628,13 +658,33 @@ $("markerShape").addEventListener("change",()=>{state.markers.shape=$("markerSha
 $("markerNums").addEventListener("change",()=>{state.markers.nums=$("markerNums").checked; saveStateThrottled();});
 
 /* -------------------------- DATA SOURCE UI ---------------------------- */
-function _replaceScalesArray(arr){
-  EMBEDDED_SCALES.length=0; for(const o of arr) EMBEDDED_SCALES.push(o);
-  const sizes=[...new Set(EMBEDDED_SCALES.map(s=>s.size))].sort((a,b)=>{const A=parseInt((a.match(/^(\d+)/)||[])[1]||1e9,10); const B=parseInt((b.match(/^(\d+)/)||[])[1]||1e9,10); return A===B? a.localeCompare(b):A-B;});
-  BASE_SIZES.length=0; sizes.forEach(s=>BASE_SIZES.push(s));
-  state.selected.sizes=new Set(BASE_SIZES); state.selected.scales=new Set(EMBEDDED_SCALES.map(s=>s.id));
-  renderFilters(); saveStateThrottled && saveStateThrottled();
-}
+    function _replaceScalesArray(arr){
+      // Replace EMBEDDED_SCALES content in-place to preserve references
+      EMBEDDED_SCALES.length = 0;
+      for (const o of arr) EMBEDDED_SCALES.push(o);
+
+      // Build and sort BASE_SIZES robustly even if s.size is not a string
+      const sizes = [...new Set(EMBEDDED_SCALES.map(s => s?.size))].sort((a, b) => {
+        const as = String(a ?? '');
+        const bs = String(b ?? '');
+        const A = parseInt((as.match(/^(\d+)/) || [])[1] ?? Number.MAX_SAFE_INTEGER, 10);
+        const B = parseInt((bs.match(/^(\d+)/) || [])[1] ?? Number.MAX_SAFE_INTEGER, 10);
+        if (A !== B) return A - B;
+        return as.localeCompare(bs);
+      });
+
+      // Refresh BASE_SIZES in-place
+      BASE_SIZES.length = 0;
+      sizes.forEach(s => BASE_SIZES.push(s));
+
+      // Reset selections to include everything now present
+      state.selected.sizes  = new Set(BASE_SIZES);
+      state.selected.scales = new Set(EMBEDDED_SCALES.map(s => s.id));
+
+      // Re-render UI and persist (guarded in case either is undefined)
+      renderFilters?.();
+      saveStateThrottled?.();
+    }
 function restoreEmbedded(){ const copy=EMBEDDED_SCALES_ORIG.map(x=>({...x})); _replaceScalesArray(copy); }
 function setDataStatus(msg){ const el=$("dataStatus"); if(el) el.textContent=msg; }
 /* hydrate on load */
@@ -717,11 +767,59 @@ document.addEventListener('keydown',unlockAudioOnce,{once:true});
 document.addEventListener('touchstart',unlockAudioOnce,{once:true,passive:false});
 
 function startDrone(freq){
-  ensureAudio(); stopDrone();
-  if(audio.ctx && audio.ctx.state==='suspended'){ audio.ctx.resume().catch(()=>{}); }
-  const osc=audio.ctx.createOscillator(); osc.type='sine'; osc.frequency.value=freq; osc.connect(audio.gain); osc.start(); audio.osc=osc;
+  ensureAudio();
+  stopDrone(); // ensure previous is really off (with a fade)
+
+  if (audio.ctx && audio.ctx.state === 'suspended'){
+    audio.ctx.resume().catch(()=>{});
+  }
+
+  const osc  = audio.ctx.createOscillator();
+  const gain = audio.ctx.createGain();
+  const now  = audio.ctx.currentTime;
+  const g    = gain.gain;
+
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+
+  // Prepare gain at (near) zero, then smooth into target volume
+  try { g.cancelScheduledValues(now); } catch {}
+  if (typeof g.cancelAndHoldAtTime === "function") {
+    try { g.cancelAndHoldAtTime(now); } catch {}
+  }
+  try { g.setValueAtTime(0.0001, now); } catch {}
+  try { g.setTargetAtTime(state.drone.volume, now, 0.015); } catch {}
+
+  osc.connect(gain).connect(audio.gain || audio.ctx.destination);
+  osc.start(now);
+
+  audio.osc = { osc, gain };
 }
-function stopDrone(){ if(audio.osc){ try{audio.osc.stop();}catch{} audio.osc.disconnect(); audio.osc=null; } }
+    function stopDrone(){
+      if (audio.osc){
+        const { osc, gain } = audio.osc;
+        const now = audio.ctx.currentTime;
+        const g = gain.gain;
+
+        // Freeze the envelope at its current value, then glide down
+        try { g.cancelScheduledValues(now); } catch {}
+        if (typeof g.cancelAndHoldAtTime === "function") {
+          try { g.cancelAndHoldAtTime(now); } catch {}
+        } else {
+          // Fallback: pin a value at 'now' to minimize the step
+          try { g.setValueAtTime(g.value ?? 0.0001, now); } catch {}
+        }
+
+        // Smooth tail (slightly longer than before helps)
+        try { g.setTargetAtTime(0.0001, now, 0.015); } catch {}
+
+        // Stop a hair after the tail finishes; disconnect in onended (not immediately)
+        osc.onended = () => { try { osc.disconnect(); } catch {} };
+        try { osc.stop(now + 0.06); } catch {}
+
+        audio.osc = null;
+      }
+    }
 function notePcToFreq(pc,octave){ const midi=(octave+1)*12+pc; return 440*Math.pow(2,(midi-69)/12); }
 
 $("droneEnable").checked=state.drone.enabled;
@@ -737,7 +835,16 @@ $("timerDur").value=String(state.timer.dur);
 $("timerDur").addEventListener("change",()=>{state.timer.dur=parseInt($("timerDur").value,10); saveStateThrottled();});
 $("timerAuto").checked=state.timer.auto;
 $("timerAuto").addEventListener("change",()=>{state.timer.auto=$("timerAuto").checked; saveStateThrottled();});
-$("timerBtn").addEventListener("click",()=>{ if(timer.running) stopTimer(); else startTimer(state.timer.dur); });
+$("timerBtn").addEventListener("click",()=>{
+  const useMetro = !!state.metronome.enable;
+  if (useMetro) {
+    if (typeof metro!=='undefined' && metro.running) { stopMetronome(); stopTimer(); }
+    else { startMetronome(); }
+  } else {
+    if (timer.running) { stopTimer(); }
+    else { beep(); startTimer(state.timer.dur); }
+  }
+});
 $("metroEnable").checked=state.metronome.enable;
 $("metroBpm").value=String(state.metronome.bpm);
 $("metroBeatsPerBar").value=String(state.metronome.bpb);
@@ -780,7 +887,211 @@ function beep(){
   osc.type='square'; osc.frequency.setValueAtTime(880,t0);
   osc.connect(gain).connect(ctx.destination); osc.start(t0); osc.stop(off);
 }
+    /* ---------------------- METRONOME SCHEDULER (added) ------------------ */
+    const metro = {
+      running: false,
+      schedulerId: null,
+      lookahead: 25,          // ms
+      scheduleAhead: 0.10,    // seconds of audio time to fill ahead
+      nextTime: 0,
+      beat: 0,
+      cycleIndex: 0,          // counts completed cycles
+      regenScheduledFor: null // AudioContext time at which regen is already scheduled
+    };
 
+    const CLICK_LEN = 0.05;        // seconds, click envelope length
+    const REGEN_MARGIN = 0.001;    // seconds, tiny cushion after click ends
+
+    // Schedules regeneration using the audio clock (sample-accurate)
+    function scheduleRegenerateAt(time){
+      ensureAudio();
+      const ctx = audio.ctx;
+
+      // Don't schedule twice for the same time
+      if (metro.regenScheduledFor !== null && Math.abs(metro.regenScheduledFor - time) < 1e-4) return;
+      metro.regenScheduledFor = time;
+
+      // Inaudible, 1ms marker whose onended fires exactly at `time`
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.value = 0.0001;
+      osc.connect(gain).connect(ctx.destination);
+
+      osc.start(time);
+      osc.stop(time + 0.001);
+
+      osc.onended = () => {
+        metro.regenScheduledFor = null; // clear guard for next cycle
+        try { pick(); } catch(e){}
+      };
+    }
+
+    function scheduleClick(t, accent){
+      ensureAudio();
+      const ctx = audio.ctx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      const baseVol = Math.max(0, Math.min(0.8, state.timer?.beepVol ?? 0.05));
+      const vol = baseVol * (accent ? 1.0 : 0.6);
+      const freq = accent ? 1600 : 1000;
+      const len  = CLICK_LEN;
+
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(vol, t + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + len);
+
+      osc.type = "square";
+      osc.frequency.setValueAtTime(freq, t);
+      osc.connect(gain).connect(audio.gain || audio.ctx.destination);
+      osc.start(t);
+      osc.stop(t + len);
+    }
+
+    /* ---- Beat visualiser (rectangles) ---- */
+    function ensureBeatVizExists(totalBeats, bpb){
+      let el = document.getElementById("beatViz");
+      if (!el){
+        el = document.createElement("div");
+        el.id = "beatViz";
+        el.className = "beats";
+        const out = $("out");
+        if (out) out.appendChild(el);
+      }
+      // Rebuild only if size changed
+      if (el.childElementCount !== totalBeats){
+        el.innerHTML = "";
+        for (let i = 0; i < totalBeats; i++){
+          const d = document.createElement("div");
+          d.className = "cell";
+          // Mark downbeats (beat 1 of each bar)
+          if (i % bpb === 0) d.classList.add("downbeat");
+          // Add a bigger gap after the end of each bar (except last cell)
+          if ((i % bpb === bpb - 1) && i < totalBeats - 1) d.classList.add("bar-end");
+          el.appendChild(d);
+        }
+      } else {
+        // If count is same but bpb changed, refresh classes
+        const kids = el.children;
+        for (let i = 0; i < kids.length; i++){
+          kids[i].classList.toggle("downbeat", i % bpb === 0);
+          kids[i].classList.toggle("bar-end", (i % bpb === bpb - 1) && i < kids.length - 1);
+        }
+      }
+      return el;
+    }
+
+    function updateBeatViz(beatIdxInCycle, totalBeats, bpb){
+      const el = ensureBeatVizExists(totalBeats, bpb);
+      const kids = el.children;
+      for (let i = 0; i < kids.length; i++){
+        kids[i].classList.toggle("active", i === beatIdxInCycle);
+      }
+    }
+
+    /* ---- Audio-clock scheduler ---- */
+    function _scheduleAhead(){
+      const m   = state.metronome || {};
+      const ctx = audio.ctx;
+
+      const bpm  = Math.max(20, Math.min(300, Number(m.bpm)  || 120));
+      const bpb  = Math.max(1,               Number(m.bpb)  || 4);
+      const bars = Math.max(1,               Number(m.bars) || 1);
+
+      const secPerBeat    = 60 / bpm;
+      const beatsPerCycle = bpb * bars;
+
+      while (metro.nextTime < ctx.currentTime + metro.scheduleAhead){
+        const beatInCycle = metro.beat % beatsPerCycle;
+        const isLastBeat  = (beatInCycle === (beatsPerCycle - 1));
+        const beatInBar   = beatInCycle % bpb;
+        const accent      = (beatInBar === 0);
+
+        scheduleClick(metro.nextTime, accent);
+
+        // ⬇️ highlight the absolute beat within the whole cycle, bar aware
+        updateBeatViz(beatInCycle, beatsPerCycle, bpb);
+
+        // If we just scheduled the LAST beat of this cycle, queue regeneration
+        if (state.timer?.auto && isLastBeat){
+          // Wait until the NEXT beat would have started
+          const cycleEnd = metro.nextTime + secPerBeat;
+          scheduleRegenerateAt(cycleEnd + REGEN_MARGIN);
+
+          // IMPORTANT: don't schedule beyond the end of the cycle in this pass
+          // (avoids overlapping with the next cycle that pick() will start)
+          // We still advance beat/nextTime below so the loop stays consistent.
+        }
+
+        // Advance to the next beat
+        metro.beat++;
+        metro.nextTime += secPerBeat;
+
+        // If that was the last beat, bump cycle counter (useful for debugging/guards)
+        if (isLastBeat) metro.cycleIndex++;
+      }
+    }
+
+    /* ---- Controls ---- */
+    function startMetronome(){
+      stopTimer();
+
+      ensureAudio();
+      const m = state.metronome || {};
+
+      metro.running = true;
+      metro.beat = 0;
+      metro.cycleIndex = 0;
+      metro.regenScheduledFor = null;
+
+      // Immediate accented first beat
+      metro.nextTime = audio.ctx.currentTime;
+
+      const bpb  = Math.max(1, Number(m.bpb)  || 4);
+      const bars = Math.max(1, Number(m.bars) || 1);
+      const beatsPerCycle = bpb * bars;
+
+      ensureBeatVizExists(beatsPerCycle);
+      updateBeatViz(0, beatsPerCycle);
+
+      if (metro.schedulerId) clearInterval(metro.schedulerId);
+      _scheduleAhead(); // prime immediately
+      metro.schedulerId = setInterval(_scheduleAhead, metro.lookahead);
+
+      const btn = $("timerBtn"); if (btn) btn.textContent = 'Stop';
+    }
+
+    function stopMetronome(){
+      if (metro.schedulerId){ clearInterval(metro.schedulerId); metro.schedulerId = null; }
+      metro.running = false;
+      metro.regenScheduledFor = null;
+      const btn = $("timerBtn"); if (btn) btn.textContent = 'Start';
+    }
+    // Handle tab visibility: adjust scheduling when hidden/visible
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        // Prefill more beats because JS timers will be throttled
+        metro.scheduleAhead = 1.5;   // seconds (was 0.10)
+        if (metro.running) {
+          if (metro.schedulerId) clearInterval(metro.schedulerId);
+          metro.schedulerId = setInterval(_scheduleAhead, 250); // slower refill loop
+          _scheduleAhead(); // top up right now
+        }
+      } else {
+        // Restore normal snappy scheduling
+        metro.scheduleAhead = 0.10;
+        if (metro.running) {
+          if (metro.schedulerId) clearInterval(metro.schedulerId);
+          metro.schedulerId = setInterval(_scheduleAhead, metro.lookahead); // back to 25ms loop
+          _scheduleAhead();
+        }
+        // If AudioContext got suspended while hidden, resume it
+        if (audio.ctx && audio.ctx.state === 'suspended') {
+          audio.ctx.resume().catch(()=>{});
+        }
+      }
+    });
+/* --------------------------------------------------------------------- */
 /* ---------------------------- SRS ------------------------------------ */
 function loadSRS(){ try{const x=localStorage.getItem(SRS_KEY); return x?JSON.parse(x):{};}catch{return{};} }
 function saveSRS(){ try{localStorage.setItem(SRS_KEY,JSON.stringify(state.srs.map));}catch{} }
@@ -937,7 +1248,7 @@ function pick(){
   const secondParts=[toMusical(noteVal), nameStr];
   const secondLine=`<div class="line">${secondParts.filter(Boolean).join(' · ')} <span class="meta">${metaStr}</span></div>`;
 
-  $("out").innerHTML = `${topLine}${secondLine}<div class="line"><span class="label">Intervals:</span> ${ivlStr}</div><div class="timer-inline"></div>`;
+  $("out").innerHTML = `${topLine}${secondLine}<div class="line"><span class="label">Intervals:</span> ${ivlStr}</div><div class="timer-inline"></div><div id="beatViz" class="beats" aria-hidden="true"></div>`;
   fitLines();
 
   if(state.drone.enabled){
@@ -945,10 +1256,22 @@ function pick(){
   } else { stopDrone(); }
 
   if(state.timer.auto){
-    const m=state.metronome||{}; const useMetro=!!m.enable && typeof window.metronomeSeconds==='function';
-    const secs=useMetro? window.metronomeSeconds(Number(m.bpm)||120, Number(m.bpb)||4, Number(m.bars)||1) : state.timer.dur;
-    startTimer(secs);
-  } else { stopTimer(); updateInlineTimer(null); }
+    const m=state.metronome||{};
+    if (m.enable) {
+      try {
+        startMetronome();
+      } catch(err) {
+        console.warn("Metronome failed to start:", err);
+      }
+    } else {
+      beep();
+      startTimer(state.timer.dur);
+    }
+  } else {
+    stopMetronome?.();
+    stopTimer();
+    updateInlineTimer(null);
+  }
 
   updateDiagramVisibility();
   if(state.diagEnable && state.mode==='guitar'){
@@ -959,10 +1282,18 @@ function pick(){
 
 /* ----------------------- EVENTS / SHORTCUTS -------------------------- */
 $("pickBtn").addEventListener("click",pick);
-$("stopBtn").addEventListener("click",()=>{ stopTimer(); stopDrone(); });
+$("stopBtn").addEventListener("click",()=>{ stopMetronome?.();  stopTimer(); stopDrone();  });
 document.addEventListener("keydown",(e)=>{
   const tag=(e.target && e.target.tagName)? e.target.tagName : "";
-  if((e.code==="Space" || e.key===" ") && !/INPUT|TEXTAREA|SELECT/.test(tag)){ e.preventDefault(); pick(); }
+  if(/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+  if (e.code==="Space" || e.key===" ") {
+    e.preventDefault();
+    if (timer.running || (typeof metro!=="undefined" && metro.running)) { stopMetronome?.(); stopTimer(); stopDrone(); }
+    else { pick(); }
+  } else if (e.code==="Enter" || (e.key && e.key.toLowerCase()==="g")) {
+    e.preventDefault();
+    pick();
+  }
 });
 const outEl=$("out");
 outEl.addEventListener("click",pick);
